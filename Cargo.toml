@@ -1,0 +1,19 @@
+[package]
+name = "wow-database-translator"
+version = "0.1.0"
+edition = "2021"
+authors = ["dainslef <dainslef@outlook.com>"]
+
+[dependencies]
+log = "*"
+env_logger = "*"
+once_cell = "*"
+const_format = "*"
+strum = "*"
+strum_macros = "*"
+opencc-rust = "*"
+tokio-stream = "*"
+clap = { version = "*", features = ["derive"] }
+anyhow = { version = "*", features = ["backtrace"] }
+tokio = { version = "*", features = ["full"] }
+sqlx = { version = "*", features = ["runtime-tokio-rustls", "mysql"] }
