@@ -1,4 +1,5 @@
 use crate::{common::Language, translate::*};
+use const_format::formatcp;
 use sqlx::{mysql::MySqlArguments, query::Query, MySql};
 
 #[derive(sqlx::FromRow, Debug)]
@@ -31,17 +32,17 @@ impl TranslateLogic for QuestTemplateLocale {
   const TARGET: TranslateTarget =
     TranslateTarget::new("acore_world", "quest_template_locale", "locale");
 
-  fn insert_sql() -> String {
-    format!("INSERT IGNORE INTO {}.{} (ID, locale, Title, Details, Objectives, EndText, CompletedText, ObjectiveText1, ObjectiveText2, ObjectiveText3, ObjectiveText4) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    Self::TARGET.database, Self::TARGET.table)
-  }
+  const SQL: &'static str = formatcp!(
+    "INSERT IGNORE INTO {}.{} (ID, locale, Title, Details, Objectives, EndText, CompletedText,
+      ObjectiveText1, ObjectiveText2, ObjectiveText3, ObjectiveText4)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    QuestTemplateLocale::TARGET.database,
+    QuestTemplateLocale::TARGET.table
+  );
 
-  fn bind_query<'a>(
-    &self,
-    query: Query<'a, MySql, MySqlArguments>,
-  ) -> Query<'a, MySql, MySqlArguments> {
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
     let opencc = self.locale.opencc();
-    query
+    sqlx::query(Self::SQL)
       .bind(self.id)
       .bind(self.locale.target().to_string())
       .bind(opencc.convert(&self.title))
@@ -73,20 +74,15 @@ impl TranslateLogic for AchievementRewardLocale {
   const TARGET: TranslateTarget =
     TranslateTarget::new("acore_world", "achievement_reward_locale", "Locale");
 
-  fn insert_sql() -> String {
-    format!(
-      "INSERT IGNORE INTO {}.{} (ID, Locale, Subject, Text) VALUES (?, ?, ?, ?)",
-      Self::TARGET.database,
-      Self::TARGET.table
-    )
-  }
+  const SQL: &'static str = formatcp!(
+    "INSERT IGNORE INTO {}.{} (ID, Locale, Subject, Text) VALUES (?, ?, ?, ?)",
+    AchievementRewardLocale::TARGET.database,
+    AchievementRewardLocale::TARGET.table
+  );
 
-  fn bind_query<'a>(
-    &self,
-    query: Query<'a, MySql, MySqlArguments>,
-  ) -> Query<'a, MySql, MySqlArguments> {
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
     let opencc = self.locale.opencc();
-    query
+    sqlx::query(Self::SQL)
       .bind(self.id)
       .bind(self.locale.target().to_string())
       .bind(opencc.convert(&self.subject))
@@ -103,26 +99,21 @@ pub struct BroadcastTextLocale {
   #[sqlx(rename = "MaleText")]
   pub male_text: String,
   #[sqlx(rename = "VerifiedBuild")]
-  pub verified_build: i8,
+  pub verified_build: i16,
 }
 
 impl TranslateLogic for BroadcastTextLocale {
   const TARGET: TranslateTarget =
     TranslateTarget::new("acore_world", "broadcast_text_locale", "locale");
 
-  fn insert_sql() -> String {
-    format!(
-      "INSERT IGNORE INTO {}.{} (ID, locale, MaleText, VerifiedBuild) VALUES (?, ?, ?, ?)",
-      Self::TARGET.database,
-      Self::TARGET.table
-    )
-  }
+  const SQL: &'static str = formatcp!(
+    "INSERT IGNORE INTO {}.{} (ID, locale, MaleText, VerifiedBuild) VALUES (?, ?, ?, ?)",
+    BroadcastTextLocale::TARGET.database,
+    BroadcastTextLocale::TARGET.table
+  );
 
-  fn bind_query<'a>(
-    &self,
-    query: Query<'a, MySql, MySqlArguments>,
-  ) -> Query<'a, MySql, MySqlArguments> {
-    query
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+    sqlx::query(Self::SQL)
       .bind(self.id)
       .bind(self.locale.target().to_string())
       .bind(self.locale.opencc().convert(&self.male_text))
@@ -140,27 +131,22 @@ pub struct CreatureTemplateLocale {
   #[sqlx(rename = "Title")]
   pub title: String,
   #[sqlx(rename = "VerifiedBuild")]
-  pub verified_build: i8,
+  pub verified_build: i16,
 }
 
 impl TranslateLogic for CreatureTemplateLocale {
   const TARGET: TranslateTarget =
     TranslateTarget::new("acore_world", "creature_template_locale", "locale");
 
-  fn insert_sql() -> String {
-    format!(
-      "INSERT IGNORE INTO {}.{} (entry, locale, Name, Title, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
-      Self::TARGET.database,
-      Self::TARGET.table
-    )
-  }
+  const SQL: &'static str = formatcp!(
+    "INSERT IGNORE INTO {}.{} (entry, locale, Name, Title, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
+    CreatureTemplateLocale::TARGET.database,
+    CreatureTemplateLocale::TARGET.table
+  );
 
-  fn bind_query<'a>(
-    &self,
-    query: Query<'a, MySql, MySqlArguments>,
-  ) -> Query<'a, MySql, MySqlArguments> {
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
     let opencc = self.locale.opencc();
-    query
+    sqlx::query(Self::SQL)
       .bind(self.entry)
       .bind(self.locale.target().to_string())
       .bind(opencc.convert(&self.name))
@@ -188,19 +174,14 @@ impl TranslateLogic for CreatureTextLocale {
   const TARGET: TranslateTarget =
     TranslateTarget::new("acore_world", "creature_text_locale", "locale");
 
-  fn insert_sql() -> String {
-    format!(
-      "INSERT IGNORE INTO {}.{} (ID, GroupID, CreatureID, Locale, Text) VALUES (?, ?, ?, ?, ?)",
-      Self::TARGET.database,
-      Self::TARGET.table
-    )
-  }
+  const SQL: &'static str = formatcp!(
+    "INSERT IGNORE INTO {}.{} (ID, GroupID, CreatureID, Locale, Text) VALUES (?, ?, ?, ?, ?)",
+    CreatureTextLocale::TARGET.database,
+    CreatureTextLocale::TARGET.table,
+  );
 
-  fn bind_query<'a>(
-    &self,
-    query: Query<'a, MySql, MySqlArguments>,
-  ) -> Query<'a, MySql, MySqlArguments> {
-    query
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+    sqlx::query(Self::SQL)
       .bind(self.id)
       .bind(self.group_id)
       .bind(self.creature_id)

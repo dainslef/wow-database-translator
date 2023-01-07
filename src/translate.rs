@@ -28,17 +28,13 @@ impl TranslateTarget {
 
 pub trait TranslateLogic {
   const TARGET: TranslateTarget;
-  fn insert_sql() -> String;
-  fn bind_query<'a>(
-    &self,
-    query: Query<'a, MySql, MySqlArguments>,
-  ) -> Query<'a, MySql, MySqlArguments>;
+  const SQL: &'static str;
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments>;
 }
 
 async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic>(
   origin_language: Language,
 ) -> anyhow::Result<()> {
-  let insert_sql = T::insert_sql();
   let TranslateTarget {
     database,
     table,
@@ -64,8 +60,7 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
     let mut insert_results = vec![];
     for v in results {
       // Execute the insert SQL.
-      let query = sqlx::query(&insert_sql);
-      let insert_result = v.bind_query(query).execute(&*POOL).await?;
+      let insert_result = v.bind_query().execute(&*POOL).await?;
       insert_results.push(insert_result.rows_affected());
     }
 
@@ -80,8 +75,13 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
 /// Table translate logic.
 pub async fn translate_tables() -> anyhow::Result<()> {
   info!("Run table translate ...");
+
   translate::<AchievementRewardLocale>(Language::Chinese).await?;
+  translate::<BroadcastTextLocale>(Language::Chinese).await?;
+  translate::<CreatureTemplateLocale>(Language::Chinese).await?;
+  translate::<CreatureTextLocale>(Language::Chinese).await?;
   translate::<QuestTemplateLocale>(Language::Chinese).await?;
+
   Ok(())
 }
 
@@ -111,12 +111,8 @@ async fn query_test() -> anyhow::Result<()> {
 
   println!("Data count: {}", results.len());
   for result in results {
-    // let locale: &str = result.get("locale");
-    // let title: &str = result.get("Title");
-    // println!("locale: {locale}, title: {title}");
-    println!("Data: {result:?}");
     println!(
-      "Origin: {}\nTranslate: {}",
+      "Data: {result:?}\nOrigin: {}\nTranslate: {}",
       &result.details,
       opencc.convert(&result.details)
     );

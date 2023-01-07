@@ -96,7 +96,7 @@ pub struct CommandLine {
   #[arg(long)]
   pub database: Option<String>,
   /// Set the data batch size
-  #[arg(long, default_value = "50")]
+  #[arg(long, default_value = "1000")]
   pub batch_size: usize,
   /// Run database translation check
   #[arg(long)]
@@ -105,7 +105,7 @@ pub struct CommandLine {
   #[arg(long)]
   pub translate: bool,
   /// Set the log level filter
-  #[arg(short, long, default_value = "error")]
+  #[arg(short, long, default_value = "info")]
   pub log: LevelFilter,
 }
 
