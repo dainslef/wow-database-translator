@@ -3,61 +3,6 @@ use const_format::formatcp;
 use sqlx::{mysql::MySqlArguments, query::Query, MySql};
 
 #[derive(sqlx::FromRow, Debug)]
-pub struct QuestTemplateLocale {
-  #[sqlx(rename = "ID")]
-  pub id: u32,
-  #[sqlx(try_from = "String")]
-  pub locale: Language, // Use try_from attribute for type convertion.
-  #[sqlx(rename = "Title")]
-  pub title: String,
-  #[sqlx(rename = "Details")]
-  pub details: String,
-  #[sqlx(rename = "Objectives")]
-  pub objectives: String,
-  #[sqlx(rename = "EndText")]
-  pub end_text: String,
-  #[sqlx(rename = "CompletedText")]
-  pub completed_text: String,
-  #[sqlx(rename = "ObjectiveText1")]
-  pub objective_text_1: String,
-  #[sqlx(rename = "ObjectiveText2")]
-  pub objective_text_2: String,
-  #[sqlx(rename = "ObjectiveText3")]
-  pub objective_text_3: String,
-  #[sqlx(rename = "ObjectiveText4")]
-  pub objective_text_4: String,
-}
-
-impl TranslateLogic for QuestTemplateLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "quest_template_locale", "locale");
-
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, locale, Title, Details, Objectives, EndText, CompletedText,
-      ObjectiveText1, ObjectiveText2, ObjectiveText3, ObjectiveText4)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    QuestTemplateLocale::TARGET.database,
-    QuestTemplateLocale::TARGET.table
-  );
-
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
-    let opencc = self.locale.opencc();
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind(self.locale.target().to_string())
-      .bind(opencc.convert(&self.title))
-      .bind(opencc.convert(&self.details))
-      .bind(opencc.convert(&self.objectives))
-      .bind(opencc.convert(&self.end_text))
-      .bind(opencc.convert(&self.completed_text))
-      .bind(opencc.convert(&self.objective_text_1))
-      .bind(opencc.convert(&self.objective_text_2))
-      .bind(opencc.convert(&self.objective_text_3))
-      .bind(opencc.convert(&self.objective_text_4))
-  }
-}
-
-#[derive(sqlx::FromRow, Debug)]
 pub struct AchievementRewardLocale {
   #[sqlx(rename = "ID")]
   pub id: u32,
@@ -457,5 +402,155 @@ impl TranslateLogic for PointsOfInterestLocale {
       .bind(self.locale.target().to_string())
       .bind(self.locale.opencc().convert(&self.name))
       .bind(self.verified_build)
+  }
+}
+
+#[derive(sqlx::FromRow, Debug)]
+pub struct QuestGreetingLocale {
+  #[sqlx(rename = "ID")]
+  pub id: u32,
+  pub r#type: u8,
+  #[sqlx(try_from = "String")]
+  pub locale: Language, // Use try_from attribute for type convertion.
+  #[sqlx(rename = "Greeting")]
+  pub greeting: String,
+  #[sqlx(rename = "VerifiedBuild")]
+  pub verified_build: i32,
+}
+
+impl TranslateLogic for QuestGreetingLocale {
+  const TARGET: TranslateTarget =
+    TranslateTarget::new("acore_world", "quest_greeting_locale", "locale");
+
+  const SQL: &'static str = formatcp!(
+    "INSERT IGNORE INTO {}.{} (ID, type, locale, Greeting, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
+    QuestGreetingLocale::TARGET.database,
+    QuestGreetingLocale::TARGET.table
+  );
+
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+    sqlx::query(Self::SQL)
+      .bind(self.id)
+      .bind(self.r#type)
+      .bind(self.locale.target().to_string())
+      .bind(self.locale.opencc().convert(&self.greeting))
+      .bind(self.verified_build)
+  }
+}
+
+#[derive(sqlx::FromRow, Debug)]
+pub struct QuestOfferRewardLocale {
+  #[sqlx(rename = "ID")]
+  pub id: u32,
+  #[sqlx(try_from = "String")]
+  pub locale: Language, // Use try_from attribute for type convertion.
+  #[sqlx(rename = "RewardText")]
+  pub reward_text: String,
+  #[sqlx(rename = "VerifiedBuild")]
+  pub verified_build: i32,
+}
+
+impl TranslateLogic for QuestOfferRewardLocale {
+  const TARGET: TranslateTarget =
+    TranslateTarget::new("acore_world", "quest_offer_reward_locale", "locale");
+
+  const SQL: &'static str = formatcp!(
+    "INSERT IGNORE INTO {}.{} (ID, locale, RewardText, VerifiedBuild) VALUES (?, ?, ?, ?)",
+    QuestOfferRewardLocale::TARGET.database,
+    QuestOfferRewardLocale::TARGET.table
+  );
+
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+    sqlx::query(Self::SQL)
+      .bind(self.id)
+      .bind(self.locale.target().to_string())
+      .bind(self.locale.opencc().convert(&self.reward_text))
+      .bind(self.verified_build)
+  }
+}
+
+#[derive(sqlx::FromRow, Debug)]
+pub struct QuestRequestItemsLocale {
+  #[sqlx(rename = "ID")]
+  pub id: u32,
+  #[sqlx(try_from = "String")]
+  pub locale: Language, // Use try_from attribute for type convertion.
+  #[sqlx(rename = "CompletionText")]
+  pub completion_text: String,
+  #[sqlx(rename = "VerifiedBuild")]
+  pub verified_build: i32,
+}
+
+impl TranslateLogic for QuestRequestItemsLocale {
+  const TARGET: TranslateTarget =
+    TranslateTarget::new("acore_world", "quest_request_items_locale", "locale");
+
+  const SQL: &'static str = formatcp!(
+    "INSERT IGNORE INTO {}.{} (ID, locale, CompletionText, VerifiedBuild) VALUES (?, ?, ?, ?)",
+    QuestRequestItemsLocale::TARGET.database,
+    QuestRequestItemsLocale::TARGET.table
+  );
+
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+    sqlx::query(Self::SQL)
+      .bind(self.id)
+      .bind(self.locale.target().to_string())
+      .bind(self.locale.opencc().convert(&self.completion_text))
+      .bind(self.verified_build)
+  }
+}
+
+#[derive(sqlx::FromRow, Debug)]
+pub struct QuestTemplateLocale {
+  #[sqlx(rename = "ID")]
+  pub id: u32,
+  #[sqlx(try_from = "String")]
+  pub locale: Language, // Use try_from attribute for type convertion.
+  #[sqlx(rename = "Title")]
+  pub title: String,
+  #[sqlx(rename = "Details")]
+  pub details: String,
+  #[sqlx(rename = "Objectives")]
+  pub objectives: String,
+  #[sqlx(rename = "EndText")]
+  pub end_text: String,
+  #[sqlx(rename = "CompletedText")]
+  pub completed_text: String,
+  #[sqlx(rename = "ObjectiveText1")]
+  pub objective_text_1: String,
+  #[sqlx(rename = "ObjectiveText2")]
+  pub objective_text_2: String,
+  #[sqlx(rename = "ObjectiveText3")]
+  pub objective_text_3: String,
+  #[sqlx(rename = "ObjectiveText4")]
+  pub objective_text_4: String,
+}
+
+impl TranslateLogic for QuestTemplateLocale {
+  const TARGET: TranslateTarget =
+    TranslateTarget::new("acore_world", "quest_template_locale", "locale");
+
+  const SQL: &'static str = formatcp!(
+    "INSERT IGNORE INTO {}.{} (ID, locale, Title, Details, Objectives, EndText, CompletedText,
+      ObjectiveText1, ObjectiveText2, ObjectiveText3, ObjectiveText4)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    QuestTemplateLocale::TARGET.database,
+    QuestTemplateLocale::TARGET.table
+  );
+
+  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+    let opencc = self.locale.opencc();
+    sqlx::query(Self::SQL)
+      .bind(self.id)
+      .bind(self.locale.target().to_string())
+      .bind(opencc.convert(&self.title))
+      .bind(opencc.convert(&self.details))
+      .bind(opencc.convert(&self.objectives))
+      .bind(opencc.convert(&self.end_text))
+      .bind(opencc.convert(&self.completed_text))
+      .bind(opencc.convert(&self.objective_text_1))
+      .bind(opencc.convert(&self.objective_text_2))
+      .bind(opencc.convert(&self.objective_text_3))
+      .bind(opencc.convert(&self.objective_text_4))
   }
 }

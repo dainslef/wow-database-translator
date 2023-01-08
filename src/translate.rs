@@ -83,7 +83,6 @@ pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
   translate::<BroadcastTextLocale>(origin_language).await?;
   translate::<CreatureTemplateLocale>(origin_language).await?;
   translate::<CreatureTextLocale>(origin_language).await?;
-  translate::<QuestTemplateLocale>(origin_language).await?;
   translate::<GameobjectTemplateLocale>(origin_language).await?;
   translate::<GossipMenuOptionLocale>(origin_language).await?;
   translate::<ItemSetNamesLocale>(origin_language).await?;
@@ -91,6 +90,10 @@ pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
   translate::<NpcTextLocale>(origin_language).await?;
   translate::<PageTextLocale>(origin_language).await?;
   translate::<PointsOfInterestLocale>(origin_language).await?;
+  translate::<QuestGreetingLocale>(origin_language).await?;
+  translate::<QuestOfferRewardLocale>(origin_language).await?;
+  translate::<QuestRequestItemsLocale>(origin_language).await?;
+  translate::<QuestTemplateLocale>(origin_language).await?;
 
   Ok(())
 }
