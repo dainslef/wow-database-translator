@@ -11,8 +11,8 @@ use clap::CommandFactory;
 async fn main() -> anyhow::Result<()> {
   init_logger();
 
-  if COMMAND_LINE.translate {
-    translate_tables().await?;
+  if let Some(language) = COMMAND_LINE.translate {
+    translate_tables(language).await?;
   } else if COMMAND_LINE.check {
     check_translation().await?;
   } else {

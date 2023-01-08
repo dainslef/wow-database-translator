@@ -42,7 +42,7 @@ static OPECC_TW2SP: Lazy<OpenCC> =
   Lazy::new(|| OpenCC::new(DefaultConfig::TW2SP).expect("Init OpenCC error!"));
 
 /// Define the language types.
-#[derive(Display, Debug, strum_macros::EnumString, sqlx::Type)]
+#[derive(Clone, Copy, Display, Debug, strum_macros::EnumString, sqlx::Type, clap::ValueEnum)]
 pub enum Language {
   #[strum(serialize = "zhCN")]
   Chinese,
@@ -102,8 +102,8 @@ pub struct CommandLine {
   #[arg(long)]
   pub check: bool,
   /// Execute database translate
-  #[arg(long)]
-  pub translate: bool,
+  #[arg(long, value_enum, name = "ORIGIN_LANGUAGE")]
+  pub translate: Option<Language>,
   /// Set the log level filter
   #[arg(short, long, default_value = "info")]
   pub log: LevelFilter,

@@ -1,5 +1,5 @@
 use crate::{common::*, data::*};
-use log::info;
+use log::{debug, info};
 use sqlx::{
   mysql::{MySqlArguments, MySqlRow},
   query::Query,
@@ -49,6 +49,7 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
   .get("count(*)");
   info!("Translate table {database}.{table} (total count: {count}) ... ");
 
+  let mut translate_rows_count = 0;
   for i in (0..count).step_by(COMMAND_LINE.batch_size) {
     let results = sqlx::query_as::<MySql, T>(&format!(
       "SELECT * FROM {database}.{table} WHERE {locale_column} = '{origin_language}' LIMIT {i}, {}",
@@ -60,27 +61,36 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
     let mut insert_results = vec![];
     for v in results {
       // Execute the insert SQL.
-      let insert_result = v.bind_query().execute(&*POOL).await?;
-      insert_results.push(insert_result.rows_affected());
+      let rows_affected = v.bind_query().execute(&*POOL).await?.rows_affected();
+      insert_results.push(rows_affected);
+      translate_rows_count += rows_affected;
     }
 
     // Log the execute progress and row affects.
-    info!("{database}.{table} Progress: {i}/{count}, ({insert_results:?})");
+    info!("{database}.{table} Progress: {i}/{count}");
+    debug!("{database}.{table} Rows affected: {insert_results:?}");
   }
 
-  info!("Translate table {database}.{table} finished ...");
+  info!("Translate table {database}.{table} finished (translate rows count: {translate_rows_count}/{count}) ...");
   Ok(())
 }
 
 /// Table translate logic.
-pub async fn translate_tables() -> anyhow::Result<()> {
+pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
   info!("Run table translate ...");
 
-  translate::<AchievementRewardLocale>(Language::Chinese).await?;
-  translate::<BroadcastTextLocale>(Language::Chinese).await?;
-  translate::<CreatureTemplateLocale>(Language::Chinese).await?;
-  translate::<CreatureTextLocale>(Language::Chinese).await?;
-  translate::<QuestTemplateLocale>(Language::Chinese).await?;
+  translate::<AchievementRewardLocale>(origin_language).await?;
+  translate::<BroadcastTextLocale>(origin_language).await?;
+  translate::<CreatureTemplateLocale>(origin_language).await?;
+  translate::<CreatureTextLocale>(origin_language).await?;
+  translate::<QuestTemplateLocale>(origin_language).await?;
+  translate::<GameobjectTemplateLocale>(origin_language).await?;
+  translate::<GossipMenuOptionLocale>(origin_language).await?;
+  translate::<ItemSetNamesLocale>(origin_language).await?;
+  translate::<ItemTemplateLocale>(origin_language).await?;
+  translate::<NpcTextLocale>(origin_language).await?;
+  translate::<PageTextLocale>(origin_language).await?;
+  translate::<PointsOfInterestLocale>(origin_language).await?;
 
   Ok(())
 }
