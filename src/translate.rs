@@ -32,9 +32,9 @@ pub trait TranslateLogic {
   fn bind_query(&self) -> Query<'static, MySql, MySqlArguments>;
 }
 
-async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic>(
+async fn data_count<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic>(
   origin_language: Language,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<i64> {
   let TranslateTarget {
     database,
     table,
@@ -47,6 +47,20 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
   .fetch_one(&*POOL)
   .await?
   .get("count(*)");
+
+  Ok(count)
+}
+
+async fn translate_table<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic>(
+  origin_language: Language,
+) -> anyhow::Result<()> {
+  let TranslateTarget {
+    database,
+    table,
+    locale_column,
+  } = T::TARGET;
+
+  let count: i64 = data_count::<T>(origin_language).await?;
   info!("Translate table {database}.{table} (total count: {count}) ... ");
 
   let mut translate_rows_count = 0;
@@ -79,28 +93,62 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
 pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
   info!("Run table translate ...");
 
-  translate::<AchievementRewardLocale>(origin_language).await?;
-  translate::<BroadcastTextLocale>(origin_language).await?;
-  translate::<CreatureTemplateLocale>(origin_language).await?;
-  translate::<CreatureTextLocale>(origin_language).await?;
-  translate::<GameobjectTemplateLocale>(origin_language).await?;
-  translate::<GossipMenuOptionLocale>(origin_language).await?;
-  translate::<ItemSetNamesLocale>(origin_language).await?;
-  translate::<ItemTemplateLocale>(origin_language).await?;
-  translate::<NpcTextLocale>(origin_language).await?;
-  translate::<PageTextLocale>(origin_language).await?;
-  translate::<PointsOfInterestLocale>(origin_language).await?;
-  translate::<QuestGreetingLocale>(origin_language).await?;
-  translate::<QuestOfferRewardLocale>(origin_language).await?;
-  translate::<QuestRequestItemsLocale>(origin_language).await?;
-  translate::<QuestTemplateLocale>(origin_language).await?;
+  translate_table::<AchievementRewardLocale>(origin_language).await?;
+  translate_table::<BroadcastTextLocale>(origin_language).await?;
+  translate_table::<CreatureTemplateLocale>(origin_language).await?;
+  translate_table::<CreatureTextLocale>(origin_language).await?;
+  translate_table::<GameobjectTemplateLocale>(origin_language).await?;
+  translate_table::<GossipMenuOptionLocale>(origin_language).await?;
+  translate_table::<ItemSetNamesLocale>(origin_language).await?;
+  translate_table::<ItemTemplateLocale>(origin_language).await?;
+  translate_table::<NpcTextLocale>(origin_language).await?;
+  translate_table::<PageTextLocale>(origin_language).await?;
+  translate_table::<PointsOfInterestLocale>(origin_language).await?;
+  translate_table::<QuestGreetingLocale>(origin_language).await?;
+  translate_table::<QuestOfferRewardLocale>(origin_language).await?;
+  translate_table::<QuestRequestItemsLocale>(origin_language).await?;
+  translate_table::<QuestTemplateLocale>(origin_language).await?;
+
+  Ok(())
+}
+
+async fn check_translation<
+  T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic,
+>() -> anyhow::Result<()> {
+  let TranslateTarget {
+    database, table, ..
+  } = T::TARGET;
+
+  let taiwanese_count: i64 = data_count::<T>(Language::Taiwanese).await?;
+  let chinese_count: i64 = data_count::<T>(Language::Chinese).await?;
+  info!(
+    "Table {database}.{table} is equal: {} (taiwanese count: {taiwanese_count}, chinese count: {chinese_count}) ... ",
+    taiwanese_count == chinese_count
+  );
 
   Ok(())
 }
 
 /// Table translation check logic.
-pub async fn check_translation() -> anyhow::Result<()> {
+pub async fn check_translations() -> anyhow::Result<()> {
   info!("Check table translations ...");
+
+  check_translation::<AchievementRewardLocale>().await?;
+  check_translation::<BroadcastTextLocale>().await?;
+  check_translation::<CreatureTemplateLocale>().await?;
+  check_translation::<CreatureTextLocale>().await?;
+  check_translation::<GameobjectTemplateLocale>().await?;
+  check_translation::<GossipMenuOptionLocale>().await?;
+  check_translation::<ItemSetNamesLocale>().await?;
+  check_translation::<ItemTemplateLocale>().await?;
+  check_translation::<NpcTextLocale>().await?;
+  check_translation::<PageTextLocale>().await?;
+  check_translation::<PointsOfInterestLocale>().await?;
+  check_translation::<QuestGreetingLocale>().await?;
+  check_translation::<QuestOfferRewardLocale>().await?;
+  check_translation::<QuestRequestItemsLocale>().await?;
+  check_translation::<QuestTemplateLocale>().await?;
+
   Ok(())
 }
 

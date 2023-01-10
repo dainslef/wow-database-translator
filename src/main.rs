@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
   if let Some(language) = COMMAND_LINE.translate {
     translate_tables(language).await?;
   } else if COMMAND_LINE.check {
-    check_translation().await?;
+    check_translations().await?;
   } else {
     // Print help message when there is no action command input.
     CommandLine::command().print_long_help()?;
