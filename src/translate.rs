@@ -60,11 +60,16 @@ async fn translate_table<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin +
     locale_column,
   } = T::TARGET;
 
-  let count: i64 = data_count::<T>(origin_language).await?;
-  info!("Translate table {database}.{table} (total count: {count}) ... ");
+  let origin_count = data_count::<T>(origin_language).await?;
+  let target_count = data_count::<T>(origin_language.target()).await?;
+  if origin_count == target_count {
+    info!("Table {database}.{table} has already been translated (total count: {origin_count}), skipping ...");
+    return Ok(());
+  }
+  info!("Translating table {database}.{table} (total count: {origin_count}) ...");
 
   let mut translate_rows_count = 0;
-  for i in (0..count).step_by(COMMAND_LINE.batch_size) {
+  for i in (0..origin_count).step_by(COMMAND_LINE.batch_size) {
     let results = sqlx::query_as::<MySql, T>(&format!(
       "SELECT * FROM {database}.{table} WHERE {locale_column} = '{origin_language}' LIMIT {i}, {}",
       COMMAND_LINE.batch_size
@@ -81,11 +86,11 @@ async fn translate_table<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin +
     }
 
     // Log the execute progress and row affects.
-    info!("{database}.{table} Progress: {i}/{count}");
+    info!("{database}.{table} Progress: {i}/{origin_count}");
     debug!("{database}.{table} Rows affected: {insert_results:?}");
   }
 
-  info!("Translate table {database}.{table} finished (translate rows count: {translate_rows_count}/{count}) ...");
+  info!("Translate table {database}.{table} finished (translate rows count: {translate_rows_count}/{origin_count}) ...");
   Ok(())
 }
 
@@ -114,40 +119,52 @@ pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
 
 async fn check_translation<
   T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic,
->() -> anyhow::Result<()> {
+>() -> anyhow::Result<(bool, &'static str)> {
   let TranslateTarget {
     database, table, ..
   } = T::TARGET;
 
-  let taiwanese_count: i64 = data_count::<T>(Language::Taiwanese).await?;
-  let chinese_count: i64 = data_count::<T>(Language::Chinese).await?;
+  let taiwanese_count = data_count::<T>(Language::Taiwanese).await?;
+  let chinese_count = data_count::<T>(Language::Chinese).await?;
   info!(
     "Table {database}.{table} is equal: {} (taiwanese count: {taiwanese_count}, chinese count: {chinese_count}) ... ",
     taiwanese_count == chinese_count
   );
 
-  Ok(())
+  Ok((taiwanese_count == chinese_count, table))
 }
 
 /// Table translation check logic.
 pub async fn check_translations() -> anyhow::Result<()> {
   info!("Check table translations ...");
 
-  check_translation::<AchievementRewardLocale>().await?;
-  check_translation::<BroadcastTextLocale>().await?;
-  check_translation::<CreatureTemplateLocale>().await?;
-  check_translation::<CreatureTextLocale>().await?;
-  check_translation::<GameobjectTemplateLocale>().await?;
-  check_translation::<GossipMenuOptionLocale>().await?;
-  check_translation::<ItemSetNamesLocale>().await?;
-  check_translation::<ItemTemplateLocale>().await?;
-  check_translation::<NpcTextLocale>().await?;
-  check_translation::<PageTextLocale>().await?;
-  check_translation::<PointsOfInterestLocale>().await?;
-  check_translation::<QuestGreetingLocale>().await?;
-  check_translation::<QuestOfferRewardLocale>().await?;
-  check_translation::<QuestRequestItemsLocale>().await?;
-  check_translation::<QuestTemplateLocale>().await?;
+  let not_equal_tables: Vec<_> = [
+    check_translation::<AchievementRewardLocale>().await?,
+    check_translation::<BroadcastTextLocale>().await?,
+    check_translation::<CreatureTemplateLocale>().await?,
+    check_translation::<CreatureTextLocale>().await?,
+    check_translation::<GameobjectTemplateLocale>().await?,
+    check_translation::<GossipMenuOptionLocale>().await?,
+    check_translation::<ItemSetNamesLocale>().await?,
+    check_translation::<ItemTemplateLocale>().await?,
+    check_translation::<NpcTextLocale>().await?,
+    check_translation::<PageTextLocale>().await?,
+    check_translation::<PointsOfInterestLocale>().await?,
+    check_translation::<QuestGreetingLocale>().await?,
+    check_translation::<QuestOfferRewardLocale>().await?,
+    check_translation::<QuestRequestItemsLocale>().await?,
+    check_translation::<QuestTemplateLocale>().await?,
+  ]
+  .into_iter()
+  .filter(|(v, _)| *v == false)
+  .map(|(_, t)| t)
+  .collect();
+
+  if not_equal_tables.is_empty() {
+    info!("All tables' translation count are equal.");
+  } else {
+    info!("Some tables' translation count aren't equal: {not_equal_tables:?}.");
+  }
 
   Ok(())
 }
