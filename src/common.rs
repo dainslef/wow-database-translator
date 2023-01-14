@@ -98,6 +98,9 @@ pub struct CommandLine {
   /// Set the data batch size
   #[arg(long, default_value = "1000")]
   pub batch_size: usize,
+  /// Enable async execute
+  #[arg(long)]
+  pub r#async: bool,
   /// Run database translation check
   #[arg(long)]
   pub check: bool,

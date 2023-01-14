@@ -5,6 +5,7 @@ use sqlx::{
   query::Query,
   MySql, Row,
 };
+use tokio::{task::JoinSet, try_join};
 
 pub struct TranslateTarget {
   pub database: &'static str,
@@ -98,21 +99,41 @@ async fn translate_table<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin +
 pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
   info!("Run table translate ...");
 
-  translate_table::<AchievementRewardLocale>(origin_language).await?;
-  translate_table::<BroadcastTextLocale>(origin_language).await?;
-  translate_table::<CreatureTemplateLocale>(origin_language).await?;
-  translate_table::<CreatureTextLocale>(origin_language).await?;
-  translate_table::<GameobjectTemplateLocale>(origin_language).await?;
-  translate_table::<GossipMenuOptionLocale>(origin_language).await?;
-  translate_table::<ItemSetNamesLocale>(origin_language).await?;
-  translate_table::<ItemTemplateLocale>(origin_language).await?;
-  translate_table::<NpcTextLocale>(origin_language).await?;
-  translate_table::<PageTextLocale>(origin_language).await?;
-  translate_table::<PointsOfInterestLocale>(origin_language).await?;
-  translate_table::<QuestGreetingLocale>(origin_language).await?;
-  translate_table::<QuestOfferRewardLocale>(origin_language).await?;
-  translate_table::<QuestRequestItemsLocale>(origin_language).await?;
-  translate_table::<QuestTemplateLocale>(origin_language).await?;
+  if COMMAND_LINE.r#async {
+    try_join!(
+      translate_table::<AchievementRewardLocale>(origin_language),
+      translate_table::<BroadcastTextLocale>(origin_language),
+      translate_table::<CreatureTemplateLocale>(origin_language),
+      translate_table::<CreatureTextLocale>(origin_language),
+      translate_table::<GameobjectTemplateLocale>(origin_language),
+      translate_table::<GossipMenuOptionLocale>(origin_language),
+      translate_table::<ItemSetNamesLocale>(origin_language),
+      translate_table::<ItemTemplateLocale>(origin_language),
+      translate_table::<NpcTextLocale>(origin_language),
+      translate_table::<PageTextLocale>(origin_language),
+      translate_table::<PointsOfInterestLocale>(origin_language),
+      translate_table::<QuestGreetingLocale>(origin_language),
+      translate_table::<QuestOfferRewardLocale>(origin_language),
+      translate_table::<QuestRequestItemsLocale>(origin_language),
+      translate_table::<QuestTemplateLocale>(origin_language),
+    )?;
+  } else {
+    translate_table::<AchievementRewardLocale>(origin_language).await?;
+    translate_table::<BroadcastTextLocale>(origin_language).await?;
+    translate_table::<CreatureTemplateLocale>(origin_language).await?;
+    translate_table::<CreatureTextLocale>(origin_language).await?;
+    translate_table::<GameobjectTemplateLocale>(origin_language).await?;
+    translate_table::<GossipMenuOptionLocale>(origin_language).await?;
+    translate_table::<ItemSetNamesLocale>(origin_language).await?;
+    translate_table::<ItemTemplateLocale>(origin_language).await?;
+    translate_table::<NpcTextLocale>(origin_language).await?;
+    translate_table::<PageTextLocale>(origin_language).await?;
+    translate_table::<PointsOfInterestLocale>(origin_language).await?;
+    translate_table::<QuestGreetingLocale>(origin_language).await?;
+    translate_table::<QuestOfferRewardLocale>(origin_language).await?;
+    translate_table::<QuestRequestItemsLocale>(origin_language).await?;
+    translate_table::<QuestTemplateLocale>(origin_language).await?;
+  }
 
   Ok(())
 }
@@ -138,28 +159,55 @@ async fn check_translation<
 pub async fn check_translations() -> anyhow::Result<()> {
   info!("Check table translations ...");
 
-  let not_equal_tables: Vec<_> = [
-    check_translation::<AchievementRewardLocale>().await?,
-    check_translation::<BroadcastTextLocale>().await?,
-    check_translation::<CreatureTemplateLocale>().await?,
-    check_translation::<CreatureTextLocale>().await?,
-    check_translation::<GameobjectTemplateLocale>().await?,
-    check_translation::<GossipMenuOptionLocale>().await?,
-    check_translation::<ItemSetNamesLocale>().await?,
-    check_translation::<ItemTemplateLocale>().await?,
-    check_translation::<NpcTextLocale>().await?,
-    check_translation::<PageTextLocale>().await?,
-    check_translation::<PointsOfInterestLocale>().await?,
-    check_translation::<QuestGreetingLocale>().await?,
-    check_translation::<QuestOfferRewardLocale>().await?,
-    check_translation::<QuestRequestItemsLocale>().await?,
-    check_translation::<QuestTemplateLocale>().await?,
-  ]
-  .into_iter()
-  .filter(|(v, _)| *v == false)
-  .map(|(_, t)| t)
-  .collect();
+  let task_results = if COMMAND_LINE.r#async {
+    let mut join_set = JoinSet::new();
 
+    join_set.spawn(check_translation::<AchievementRewardLocale>());
+    join_set.spawn(check_translation::<BroadcastTextLocale>());
+    join_set.spawn(check_translation::<CreatureTemplateLocale>());
+    join_set.spawn(check_translation::<CreatureTextLocale>());
+    join_set.spawn(check_translation::<GameobjectTemplateLocale>());
+    join_set.spawn(check_translation::<GossipMenuOptionLocale>());
+    join_set.spawn(check_translation::<ItemSetNamesLocale>());
+    join_set.spawn(check_translation::<ItemTemplateLocale>());
+    join_set.spawn(check_translation::<NpcTextLocale>());
+    join_set.spawn(check_translation::<PageTextLocale>());
+    join_set.spawn(check_translation::<PointsOfInterestLocale>());
+    join_set.spawn(check_translation::<QuestGreetingLocale>());
+    join_set.spawn(check_translation::<QuestOfferRewardLocale>());
+    join_set.spawn(check_translation::<QuestRequestItemsLocale>());
+    join_set.spawn(check_translation::<QuestTemplateLocale>());
+
+    let mut results = vec![];
+    while let Some(result) = join_set.join_next().await {
+      results.push(result??);
+    }
+    results
+  } else {
+    vec![
+      check_translation::<AchievementRewardLocale>().await?,
+      check_translation::<BroadcastTextLocale>().await?,
+      check_translation::<CreatureTemplateLocale>().await?,
+      check_translation::<CreatureTextLocale>().await?,
+      check_translation::<GameobjectTemplateLocale>().await?,
+      check_translation::<GossipMenuOptionLocale>().await?,
+      check_translation::<ItemSetNamesLocale>().await?,
+      check_translation::<ItemTemplateLocale>().await?,
+      check_translation::<NpcTextLocale>().await?,
+      check_translation::<PageTextLocale>().await?,
+      check_translation::<PointsOfInterestLocale>().await?,
+      check_translation::<QuestGreetingLocale>().await?,
+      check_translation::<QuestOfferRewardLocale>().await?,
+      check_translation::<QuestRequestItemsLocale>().await?,
+      check_translation::<QuestTemplateLocale>().await?,
+    ]
+  };
+
+  let not_equal_tables: Vec<_> = task_results
+    .into_iter()
+    .filter(|(v, _)| *v == false)
+    .map(|(_, t)| t)
+    .collect();
   if not_equal_tables.is_empty() {
     info!("All tables' translation count are equal.");
   } else {

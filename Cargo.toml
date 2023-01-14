@@ -12,7 +12,6 @@ const_format = "*"
 strum = "*"
 strum_macros = "*"
 opencc-rust = "*"
-tokio-stream = "*"
 clap = { version = "*", features = ["derive"] }
 anyhow = { version = "*", features = ["backtrace"] }
 tokio = { version = "*", features = ["full"] }
