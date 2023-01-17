@@ -62,7 +62,7 @@ async fn translate_table<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin +
   } = T::TARGET;
 
   let origin_count = data_count::<T>(origin_language).await?;
-  let target_count = data_count::<T>(origin_language.target()).await?;
+  let target_count = data_count::<T>(!origin_language).await?;
   if origin_count == target_count {
     info!("Table {database}.{table} has already been translated (total count: {origin_count}), skipping ...");
     return Ok(());

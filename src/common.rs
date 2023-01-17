@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use opencc_rust::{DefaultConfig, OpenCC};
 use sqlx::mysql::MySqlConnectOptions;
 use sqlx::{ConnectOptions, MySqlPool};
-use std::{future::Future, str::FromStr};
+use std::{future::Future, ops::Not, str::FromStr};
 use strum::ParseError;
 use strum_macros::Display;
 
@@ -50,15 +50,18 @@ pub enum Language {
   Taiwanese,
 }
 
-impl Language {
-  pub fn opencc(&self) -> &'static OpenCC {
-    match self {
-      Self::Taiwanese => &OPECC_TW2SP,
-      Self::Chinese => &OPECC_S2TWP,
+impl From<Language> for &OpenCC {
+  fn from(value: Language) -> Self {
+    match value {
+      Language::Taiwanese => &OPECC_TW2SP,
+      Language::Chinese => &OPECC_S2TWP,
     }
   }
+}
 
-  pub fn target(&self) -> Language {
+impl Not for Language {
+  type Output = Language;
+  fn not(self) -> Language {
     match self {
       Self::Chinese => Self::Taiwanese,
       Self::Taiwanese => Self::Chinese,
@@ -87,25 +90,25 @@ pub struct CommandLine {
   #[arg(long, default_value = "3306")]
   pub port: u16,
   /// Set the database login username
-  #[arg(long, default_value = "root")]
+  #[arg(short, long, default_value = "root")]
   pub username: String,
   /// Set the database login password
-  #[arg(long, default_value = "password")]
+  #[arg(short, long, default_value = "password")]
   pub password: String,
   /// Set the default database
-  #[arg(long)]
+  #[arg(short, long)]
   pub database: Option<String>,
   /// Set the data batch size
-  #[arg(long, default_value = "1000")]
+  #[arg(short, long, default_value = "1000")]
   pub batch_size: usize,
   /// Enable async execute
-  #[arg(long)]
+  #[arg(short, long)]
   pub r#async: bool,
   /// Run database translation check
-  #[arg(long)]
+  #[arg(short, long)]
   pub check: bool,
   /// Execute database translate
-  #[arg(long, value_enum, name = "ORIGIN_LANGUAGE")]
+  #[arg(short, long, value_enum, name = "ORIGIN_LANGUAGE")]
   pub translate: Option<Language>,
   /// Set the log level filter
   #[arg(short, long, default_value = "info")]

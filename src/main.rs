@@ -2,10 +2,9 @@ mod common;
 mod data;
 mod translate;
 
+use clap::CommandFactory;
 use common::*;
 use translate::*;
-
-use clap::CommandFactory;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
