@@ -219,7 +219,7 @@ pub async fn check_translations() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn query_test() -> anyhow::Result<()> {
-  use crate::data::QuestTemplateLocale;
+  use crate::{data::QuestTemplateLocale, Language};
   use opencc_rust::{DefaultConfig, OpenCC};
   use sqlx::MySqlPool;
 
@@ -227,8 +227,8 @@ async fn query_test() -> anyhow::Result<()> {
   let results = sqlx::query_as::<MySql, QuestTemplateLocale>(
     "SELECT * FROM quest_template_locale WHERE locale = ? OR locale = ? LIMIT ?, ?",
   )
-  .bind("zhCN")
-  .bind("zhTW")
+  .bind(Language::Taiwanese.to_string())
+  .bind(Language::Chinese.to_string())
   .bind(0)
   .bind(10)
   .fetch_all(&pool)

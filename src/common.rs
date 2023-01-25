@@ -2,8 +2,7 @@ use clap::Parser;
 use log::{debug, LevelFilter};
 use once_cell::sync::Lazy;
 use opencc_rust::{DefaultConfig, OpenCC};
-use sqlx::mysql::MySqlConnectOptions;
-use sqlx::{ConnectOptions, MySqlPool};
+use sqlx::{mysql::MySqlConnectOptions, ConnectOptions, MySqlPool};
 use std::{future::Future, ops::Not, str::FromStr};
 use strum::ParseError;
 use strum_macros::Display;
@@ -60,8 +59,8 @@ impl From<Language> for &OpenCC {
 }
 
 impl Not for Language {
-  type Output = Language;
-  fn not(self) -> Language {
+  type Output = Self;
+  fn not(self) -> Self {
     match self {
       Self::Chinese => Self::Taiwanese,
       Self::Taiwanese => Self::Chinese,
@@ -71,8 +70,8 @@ impl Not for Language {
 
 impl TryFrom<String> for Language {
   type Error = ParseError;
-  fn try_from(value: String) -> Result<Language, ParseError> {
-    Language::from_str(&value)
+  fn try_from(value: String) -> Result<Self, Self::Error> {
+    Self::from_str(&value)
   }
 }
 
