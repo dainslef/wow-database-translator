@@ -219,7 +219,7 @@ pub async fn check_translations() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn query_test() -> anyhow::Result<()> {
-  use crate::{data::QuestTemplateLocale, Language};
+  use crate::{data::QuestTemplateLocale, ExtendOpenCC, Language};
   use opencc_rust::{DefaultConfig, OpenCC};
   use sqlx::MySqlPool;
 
@@ -238,9 +238,9 @@ async fn query_test() -> anyhow::Result<()> {
   println!("Data count: {}", results.len());
   for result in results {
     println!(
-      "Data: {result:?}\nOrigin: {}\nTranslate: {}",
+      "Data: {result:?}\nOrigin: {:?}\nTranslate: {}",
       &result.details,
-      opencc.convert(&result.details)
+      opencc.convert_text(&result.details)
     );
   }
 

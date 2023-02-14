@@ -34,12 +34,6 @@ pub fn init_logger() {
   debug!("Command line args: {COMMAND_LINE:?}");
 }
 
-/// OpenCC configs.
-static OPECC_S2TWP: Lazy<OpenCC> =
-  Lazy::new(|| OpenCC::new(DefaultConfig::S2TWP).expect("Init OpenCC error!"));
-static OPECC_TW2SP: Lazy<OpenCC> =
-  Lazy::new(|| OpenCC::new(DefaultConfig::TW2SP).expect("Init OpenCC error!"));
-
 /// Define the language types.
 #[derive(Clone, Copy, Display, Debug, strum_macros::EnumString, sqlx::Type, clap::ValueEnum)]
 pub enum Language {
@@ -68,10 +62,26 @@ impl Not for Language {
   }
 }
 
+/// Implement TryFrom can transform supported type to custom type in SQLx.
 impl TryFrom<String> for Language {
   type Error = ParseError;
   fn try_from(value: String) -> Result<Self, Self::Error> {
     Self::from_str(&value)
+  }
+}
+
+/// Try to convert option string text.
+pub fn convert_text<'a>(opencc: impl Into<&'a OpenCC>, text: &Option<String>) -> String {
+  opencc.into().convert(text.as_ref().unwrap_or(&"".into()))
+}
+
+pub trait ExtendOpenCC {
+  fn convert_text(&self, text: &Option<String>) -> String;
+}
+
+impl ExtendOpenCC for OpenCC {
+  fn convert_text(&self, text: &Option<String>) -> String {
+    convert_text(self, text)
   }
 }
 
@@ -114,8 +124,14 @@ pub struct CommandLine {
   pub log: LevelFilter,
 }
 
-pub static COMMAND_LINE: Lazy<CommandLine> = Lazy::new(|| CommandLine::parse());
+/// OpenCC configs.
+static OPECC_S2TWP: Lazy<OpenCC> =
+  Lazy::new(|| OpenCC::new(DefaultConfig::S2TWP).expect("Init OpenCC error!"));
+static OPECC_TW2SP: Lazy<OpenCC> =
+  Lazy::new(|| OpenCC::new(DefaultConfig::TW2SP).expect("Init OpenCC error!"));
 
+/// Global lazy instances.
+pub static COMMAND_LINE: Lazy<CommandLine> = Lazy::new(|| CommandLine::parse());
 pub static POOL: Lazy<MySqlPool> = Lazy::new(|| {
   block_async({
     let mut options = MySqlConnectOptions::new()

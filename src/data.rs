@@ -1,4 +1,7 @@
-use crate::{common::Language, translate::*};
+use crate::{
+  common::{convert_text, ExtendOpenCC, Language},
+  translate::*,
+};
 use const_format::formatcp;
 use opencc_rust::OpenCC;
 use sqlx::{mysql::MySqlArguments, query::Query, MySql};
@@ -11,9 +14,9 @@ pub struct AchievementRewardLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "Subject")]
-  pub subject: String,
+  pub subject: Option<String>,
   #[sqlx(rename = "Text")]
-  pub text: String,
+  pub text: Option<String>,
 }
 
 impl TranslateLogic for AchievementRewardLocale {
@@ -31,8 +34,8 @@ impl TranslateLogic for AchievementRewardLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(opencc.convert(&self.subject))
-      .bind(opencc.convert(&self.text))
+      .bind(opencc.convert_text(&self.subject))
+      .bind(opencc.convert_text(&self.text))
   }
 }
 
@@ -43,7 +46,7 @@ pub struct BroadcastTextLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "MaleText")]
-  pub male_text: String,
+  pub male_text: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -62,7 +65,7 @@ impl TranslateLogic for BroadcastTextLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(Into::<&OpenCC>::into(self.locale).convert(&self.male_text))
+      .bind(convert_text(self.locale, &self.male_text))
       .bind(self.verified_build)
   }
 }
@@ -73,9 +76,9 @@ pub struct CreatureTemplateLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "Name")]
-  pub name: String,
+  pub name: Option<String>,
   #[sqlx(rename = "Title")]
-  pub title: String,
+  pub title: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -95,8 +98,8 @@ impl TranslateLogic for CreatureTemplateLocale {
     sqlx::query(Self::SQL)
       .bind(self.entry)
       .bind((!self.locale).to_string())
-      .bind(opencc.convert(&self.name))
-      .bind(opencc.convert(&self.title))
+      .bind(opencc.convert_text(&self.name))
+      .bind(opencc.convert_text(&self.title))
       .bind(self.verified_build)
   }
 }
@@ -113,7 +116,7 @@ pub struct CreatureTextLocale {
   #[sqlx(rename = "Locale")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "Text")]
-  pub text: String,
+  pub text: Option<String>,
 }
 
 impl TranslateLogic for CreatureTextLocale {
@@ -132,7 +135,7 @@ impl TranslateLogic for CreatureTextLocale {
       .bind(self.group_id)
       .bind(self.creature_id)
       .bind((!self.locale).to_string())
-      .bind(Into::<&OpenCC>::into(self.locale).convert(&self.text))
+      .bind(convert_text(self.locale, &self.text))
   }
 }
 
@@ -141,9 +144,9 @@ pub struct GameobjectTemplateLocale {
   pub entry: u32,
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
-  pub name: String,
+  pub name: Option<String>,
   #[sqlx(rename = "castBarCaption")]
-  pub cast_bar_caption: String,
+  pub cast_bar_caption: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -163,8 +166,8 @@ impl TranslateLogic for GameobjectTemplateLocale {
     sqlx::query(Self::SQL)
       .bind(self.entry)
       .bind((!self.locale).to_string())
-      .bind(opencc.convert(&self.name))
-      .bind(opencc.convert(&self.cast_bar_caption))
+      .bind(opencc.convert_text(&self.name))
+      .bind(opencc.convert_text(&self.cast_bar_caption))
       .bind(self.verified_build)
   }
 }
@@ -179,7 +182,7 @@ pub struct GossipMenuOptionLocale {
   #[sqlx(rename = "Locale")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "OptionText")]
-  pub option_text: String,
+  pub option_text: Option<String>,
   #[sqlx(rename = "BoxText")]
   pub box_text: Option<String>,
 }
@@ -200,8 +203,8 @@ impl TranslateLogic for GossipMenuOptionLocale {
       .bind(self.menu_id)
       .bind(self.option_id)
       .bind((!self.locale).to_string())
-      .bind(opencc.convert(&self.option_text))
-      .bind(opencc.convert(self.box_text.as_ref().unwrap_or(&"".into())))
+      .bind(opencc.convert_text(&self.option_text))
+      .bind(opencc.convert_text(&self.box_text))
   }
 }
 
@@ -212,7 +215,7 @@ pub struct ItemSetNamesLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "Name")]
-  pub name: String,
+  pub name: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -231,7 +234,7 @@ impl TranslateLogic for ItemSetNamesLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(Into::<&OpenCC>::into(self.locale).convert(&self.name))
+      .bind(convert_text(self.locale, &self.name))
       .bind(self.verified_build)
   }
 }
@@ -243,9 +246,9 @@ pub struct ItemTemplateLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "Name")]
-  pub name: String,
+  pub name: Option<String>,
   #[sqlx(rename = "Description")]
-  pub description: String,
+  pub description: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -265,8 +268,8 @@ impl TranslateLogic for ItemTemplateLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(opencc.convert(&self.name))
-      .bind(opencc.convert(&self.description))
+      .bind(opencc.convert_text(&self.name))
+      .bind(opencc.convert_text(&self.description))
       .bind(self.verified_build)
   }
 }
@@ -326,22 +329,22 @@ impl TranslateLogic for NpcTextLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(opencc.convert(self.text0_0.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text0_1.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text1_0.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text1_1.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text2_0.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text2_1.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text3_0.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text3_1.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text4_0.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text4_1.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text5_0.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text5_1.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text6_0.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text6_1.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text7_0.as_ref().unwrap_or(&"".into())))
-      .bind(opencc.convert(self.text7_1.as_ref().unwrap_or(&"".into())))
+      .bind(opencc.convert_text(&self.text0_0))
+      .bind(opencc.convert_text(&self.text0_1))
+      .bind(opencc.convert_text(&self.text1_0))
+      .bind(opencc.convert_text(&self.text1_1))
+      .bind(opencc.convert_text(&self.text2_0))
+      .bind(opencc.convert_text(&self.text2_1))
+      .bind(opencc.convert_text(&self.text3_0))
+      .bind(opencc.convert_text(&self.text3_1))
+      .bind(opencc.convert_text(&self.text4_0))
+      .bind(opencc.convert_text(&self.text4_1))
+      .bind(opencc.convert_text(&self.text5_0))
+      .bind(opencc.convert_text(&self.text5_1))
+      .bind(opencc.convert_text(&self.text6_0))
+      .bind(opencc.convert_text(&self.text6_1))
+      .bind(opencc.convert_text(&self.text7_0))
+      .bind(opencc.convert_text(&self.text7_1))
   }
 }
 
@@ -352,7 +355,7 @@ pub struct PageTextLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "Text")]
-  pub text: String,
+  pub text: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -370,7 +373,7 @@ impl TranslateLogic for PageTextLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(Into::<&OpenCC>::into(self.locale).convert(&self.text))
+      .bind(convert_text(self.locale, &self.text))
       .bind(self.verified_build)
   }
 }
@@ -382,7 +385,7 @@ pub struct PointsOfInterestLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "Name")]
-  pub name: String,
+  pub name: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -401,7 +404,7 @@ impl TranslateLogic for PointsOfInterestLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(Into::<&OpenCC>::into(self.locale).convert(&self.name))
+      .bind(convert_text(self.locale, &self.name))
       .bind(self.verified_build)
   }
 }
@@ -414,7 +417,7 @@ pub struct QuestGreetingLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "Greeting")]
-  pub greeting: String,
+  pub greeting: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -434,7 +437,7 @@ impl TranslateLogic for QuestGreetingLocale {
       .bind(self.id)
       .bind(self.r#type)
       .bind((!self.locale).to_string())
-      .bind(Into::<&OpenCC>::into(self.locale).convert(&self.greeting))
+      .bind(convert_text(self.locale, &self.greeting))
       .bind(self.verified_build)
   }
 }
@@ -446,7 +449,7 @@ pub struct QuestOfferRewardLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "RewardText")]
-  pub reward_text: String,
+  pub reward_text: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -465,7 +468,7 @@ impl TranslateLogic for QuestOfferRewardLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(Into::<&OpenCC>::into(self.locale).convert(&self.reward_text))
+      .bind(convert_text(self.locale, &self.reward_text))
       .bind(self.verified_build)
   }
 }
@@ -477,7 +480,7 @@ pub struct QuestRequestItemsLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "CompletionText")]
-  pub completion_text: String,
+  pub completion_text: Option<String>,
   #[sqlx(rename = "VerifiedBuild")]
   pub verified_build: i32,
 }
@@ -496,7 +499,7 @@ impl TranslateLogic for QuestRequestItemsLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(Into::<&OpenCC>::into(self.locale).convert(&self.completion_text))
+      .bind(convert_text(self.locale, &self.completion_text))
       .bind(self.verified_build)
   }
 }
@@ -508,23 +511,23 @@ pub struct QuestTemplateLocale {
   #[sqlx(try_from = "String")]
   pub locale: Language, // Use try_from attribute for type convertion.
   #[sqlx(rename = "Title")]
-  pub title: String,
+  pub title: Option<String>,
   #[sqlx(rename = "Details")]
-  pub details: String,
+  pub details: Option<String>,
   #[sqlx(rename = "Objectives")]
-  pub objectives: String,
+  pub objectives: Option<String>,
   #[sqlx(rename = "EndText")]
-  pub end_text: String,
+  pub end_text: Option<String>,
   #[sqlx(rename = "CompletedText")]
-  pub completed_text: String,
+  pub completed_text: Option<String>,
   #[sqlx(rename = "ObjectiveText1")]
-  pub objective_text_1: String,
+  pub objective_text_1: Option<String>,
   #[sqlx(rename = "ObjectiveText2")]
-  pub objective_text_2: String,
+  pub objective_text_2: Option<String>,
   #[sqlx(rename = "ObjectiveText3")]
-  pub objective_text_3: String,
+  pub objective_text_3: Option<String>,
   #[sqlx(rename = "ObjectiveText4")]
-  pub objective_text_4: String,
+  pub objective_text_4: Option<String>,
 }
 
 impl TranslateLogic for QuestTemplateLocale {
@@ -544,14 +547,14 @@ impl TranslateLogic for QuestTemplateLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(opencc.convert(&self.title))
-      .bind(opencc.convert(&self.details))
-      .bind(opencc.convert(&self.objectives))
-      .bind(opencc.convert(&self.end_text))
-      .bind(opencc.convert(&self.completed_text))
-      .bind(opencc.convert(&self.objective_text_1))
-      .bind(opencc.convert(&self.objective_text_2))
-      .bind(opencc.convert(&self.objective_text_3))
-      .bind(opencc.convert(&self.objective_text_4))
+      .bind(opencc.convert_text(&self.title))
+      .bind(opencc.convert_text(&self.details))
+      .bind(opencc.convert_text(&self.objectives))
+      .bind(opencc.convert_text(&self.end_text))
+      .bind(opencc.convert_text(&self.completed_text))
+      .bind(opencc.convert_text(&self.objective_text_1))
+      .bind(opencc.convert_text(&self.objective_text_2))
+      .bind(opencc.convert_text(&self.objective_text_3))
+      .bind(opencc.convert_text(&self.objective_text_4))
   }
 }
