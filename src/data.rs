@@ -1,5 +1,5 @@
 use crate::{
-  common::{convert_text, ExtendOpenCC, Language},
+  common::{ConvertText, Language},
   translate::*,
 };
 use const_format::formatcp;
@@ -65,7 +65,7 @@ impl TranslateLogic for BroadcastTextLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(convert_text(self.locale, &self.male_text))
+      .bind(self.locale.convert_text(&self.male_text))
       .bind(self.verified_build)
   }
 }
@@ -135,7 +135,7 @@ impl TranslateLogic for CreatureTextLocale {
       .bind(self.group_id)
       .bind(self.creature_id)
       .bind((!self.locale).to_string())
-      .bind(convert_text(self.locale, &self.text))
+      .bind(self.locale.convert_text(&self.text))
   }
 }
 
@@ -234,7 +234,7 @@ impl TranslateLogic for ItemSetNamesLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(convert_text(self.locale, &self.name))
+      .bind(self.locale.convert_text(&self.name))
       .bind(self.verified_build)
   }
 }
@@ -373,7 +373,7 @@ impl TranslateLogic for PageTextLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(convert_text(self.locale, &self.text))
+      .bind(self.locale.convert_text(&self.text))
       .bind(self.verified_build)
   }
 }
@@ -404,7 +404,7 @@ impl TranslateLogic for PointsOfInterestLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(convert_text(self.locale, &self.name))
+      .bind(self.locale.convert_text(&self.name))
       .bind(self.verified_build)
   }
 }
@@ -437,7 +437,7 @@ impl TranslateLogic for QuestGreetingLocale {
       .bind(self.id)
       .bind(self.r#type)
       .bind((!self.locale).to_string())
-      .bind(convert_text(self.locale, &self.greeting))
+      .bind(self.locale.convert_text(&self.greeting))
       .bind(self.verified_build)
   }
 }
@@ -468,7 +468,7 @@ impl TranslateLogic for QuestOfferRewardLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(convert_text(self.locale, &self.reward_text))
+      .bind(self.locale.convert_text(&self.reward_text))
       .bind(self.verified_build)
   }
 }
@@ -499,7 +499,7 @@ impl TranslateLogic for QuestRequestItemsLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind((!self.locale).to_string())
-      .bind(convert_text(self.locale, &self.completion_text))
+      .bind(self.locale.convert_text(&self.completion_text))
       .bind(self.verified_build)
   }
 }

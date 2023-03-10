@@ -70,18 +70,24 @@ impl TryFrom<String> for Language {
   }
 }
 
-/// Try to convert option string text.
-pub fn convert_text<'a>(opencc: impl Into<&'a OpenCC>, text: &Option<String>) -> String {
-  opencc.into().convert(text.as_ref().unwrap_or(&"".into()))
-}
-
-pub trait ExtendOpenCC {
+pub trait ConvertText {
   fn convert_text(&self, text: &Option<String>) -> String;
+
+  /// Try to convert option string text.
+  fn convert_impl<'a>(opencc: impl Into<&'a OpenCC>, text: &Option<String>) -> String {
+    opencc.into().convert(text.as_ref().unwrap_or(&"".into()))
+  }
 }
 
-impl ExtendOpenCC for OpenCC {
+impl ConvertText for OpenCC {
   fn convert_text(&self, text: &Option<String>) -> String {
-    convert_text(self, text)
+    Self::convert_impl(self, text)
+  }
+}
+
+impl ConvertText for Language {
+  fn convert_text(&self, text: &Option<String>) -> String {
+    Self::convert_impl(*self, text)
   }
 }
 
