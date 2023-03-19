@@ -40,10 +40,8 @@ Options:
   -c, --check
           Run database translation check
 
-  -t, --translate <ORIGIN_LANGUAGE>
+  -t, --translate
           Execute database translate
-
-          [possible values: chinese, taiwanese]
 
   -l, --log <LOG>
           Set the log level filter
@@ -51,8 +49,8 @@ Options:
           [default: info]
 
   -h, --help
-          Print help (see a summary with '-h')
+          Print help information (use `-h` for a summary)
 
   -V, --version
-          Print version
+          Print version information
 ```

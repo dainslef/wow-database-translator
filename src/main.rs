@@ -10,8 +10,8 @@ use translate::*;
 async fn main() -> anyhow::Result<()> {
   init_logger();
 
-  if let Some(language) = COMMAND_LINE.translate {
-    translate_tables(language).await?;
+  if COMMAND_LINE.translate {
+    translate_tables().await?;
   } else if COMMAND_LINE.check {
     check_translations().await?;
   } else {

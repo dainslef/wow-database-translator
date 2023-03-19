@@ -52,8 +52,9 @@ async fn data_count<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Tran
   Ok(count)
 }
 
-async fn translate_table<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic>(
+async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic>(
   origin_language: Language,
+  origin_count: i64,
 ) -> anyhow::Result<()> {
   let TranslateTarget {
     database,
@@ -61,12 +62,6 @@ async fn translate_table<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin +
     locale_column,
   } = T::TARGET;
 
-  let origin_count = data_count::<T>(origin_language).await?;
-  let target_count = data_count::<T>(!origin_language).await?;
-  if origin_count == target_count {
-    info!("Table {database}.{table} has already been translated (total count: {origin_count}), skipping ...");
-    return Ok(());
-  }
   info!("Translating table {database}.{table} (total count: {origin_count}) ...");
 
   let mut translate_rows_count = 0;
@@ -95,22 +90,32 @@ async fn translate_table<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin +
   Ok(())
 }
 
+async fn translate_table<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic>(
+) -> anyhow::Result<()> {
+  let (is_equal, _, (taiwanese_count, chinese_count)) = check_translation::<T>().await?;
+  if !is_equal {
+    translate::<T>(Language::Taiwanese, taiwanese_count).await?;
+    translate::<T>(Language::Chinese, chinese_count).await?;
+  }
+  Ok(())
+}
+
 macro_rules! translate_tables {
-  ($language: ident, $($data_type: ty),*) => {
-    $(translate_table::<$data_type>($language).await?;)*
+  ($($data_type: ty),*) => {
+    $(translate_table::<$data_type>().await?;)*
   };
-  (+ $language: ident, $($data_type: ty),*) => {
-    try_join!($(translate_table::<$data_type>($language),)*)?
+  (+$($data_type: ty),*) => {
+    try_join!($(translate_table::<$data_type>(),)*)?
   };
 }
 
 /// Table translate logic.
-pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
+pub async fn translate_tables() -> anyhow::Result<()> {
   info!("Run table translate ...");
 
   if COMMAND_LINE.r#async {
     translate_tables!(
-      + origin_language,
+      +
       AchievementRewardLocale,
       BroadcastTextLocale,
       CreatureTemplateLocale,
@@ -129,13 +134,12 @@ pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
     );
     // Macro expanded:
     // try_join!(
-    //   translate_table::<AchievementRewardLocale>(origin_language),
-    //   translate_table::<BroadcastTextLocale>(origin_language),
+    //   translate_table::<AchievementRewardLocale>(),
+    //   translate_table::<BroadcastTextLocale>(),
     //   ...
     // )?;
   } else {
     translate_tables!(
-      origin_language,
       AchievementRewardLocale,
       BroadcastTextLocale,
       CreatureTemplateLocale,
@@ -153,8 +157,8 @@ pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
       QuestTemplateLocale
     );
     // Macro expanded:
-    // translate_table::<AchievementRewardLocale>(origin_language).await?;
-    // translate_table::<BroadcastTextLocale>(origin_language).await?;
+    // translate_table::<AchievementRewardLocale>().await?;
+    // translate_table::<BroadcastTextLocale>().await?;
     // ...
   }
 
@@ -163,7 +167,7 @@ pub async fn translate_tables(origin_language: Language) -> anyhow::Result<()> {
 
 async fn check_translation<
   T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic,
->() -> anyhow::Result<(bool, &'static str)> {
+>() -> anyhow::Result<(bool, &'static str, (i64, i64))> {
   let TranslateTarget {
     database, table, ..
   } = T::TARGET;
@@ -175,7 +179,11 @@ async fn check_translation<
     taiwanese_count == chinese_count
   );
 
-  Ok((taiwanese_count == chinese_count, table))
+  Ok((
+    taiwanese_count == chinese_count,
+    table,
+    (taiwanese_count, chinese_count),
+  ))
 }
 
 macro_rules! check_translations {
@@ -240,8 +248,8 @@ pub async fn check_translations() -> anyhow::Result<()> {
 
   let not_equal_tables: Vec<_> = task_results
     .into_iter()
-    .filter(|(v, _)| *v == false)
-    .map(|(_, t)| t)
+    .filter(|(v, _, _)| *v == false)
+    .map(|(_, t, _)| t)
     .collect();
   if not_equal_tables.is_empty() {
     info!("All tables' translation count are equal.");
@@ -262,8 +270,8 @@ async fn query_test() -> anyhow::Result<()> {
   let results = sqlx::query_as::<MySql, QuestTemplateLocale>(
     "SELECT * FROM quest_template_locale WHERE locale = ? OR locale = ? LIMIT ?, ?",
   )
-  .bind(Language::Taiwanese.to_string())
-  .bind(Language::Chinese.to_string())
+  .bind(Language::Taiwanese)
+  .bind(Language::Chinese)
   .bind(0)
   .bind(10)
   .fetch_all(&pool)

@@ -2,7 +2,7 @@ use clap::Parser;
 use log::{debug, LevelFilter};
 use once_cell::sync::Lazy;
 use opencc_rust::{DefaultConfig, OpenCC};
-use sqlx::{mysql::MySqlConnectOptions, ConnectOptions, MySqlPool};
+use sqlx::{mysql::MySqlConnectOptions, ConnectOptions, Encode, MySql, MySqlPool, Type};
 use std::{future::Future, ops::Not, str::FromStr};
 use strum::ParseError;
 use strum_macros::Display;
@@ -35,7 +35,7 @@ pub fn init_logger() {
 }
 
 /// Define the language types.
-#[derive(Clone, Copy, Display, Debug, strum_macros::EnumString, sqlx::Type, clap::ValueEnum)]
+#[derive(Clone, Copy, Display, Debug, strum_macros::EnumString, clap::ValueEnum)]
 pub enum Language {
   #[strum(serialize = "zhCN")]
   Chinese,
@@ -59,6 +59,18 @@ impl Not for Language {
       Self::Chinese => Self::Taiwanese,
       Self::Taiwanese => Self::Chinese,
     }
+  }
+}
+
+impl Type<MySql> for Language {
+  fn type_info() -> <MySql as sqlx::Database>::TypeInfo {
+    String::type_info()
+  }
+}
+
+impl Encode<'_, MySql> for Language {
+  fn encode_by_ref(&self, buf: &mut Vec<u8>) -> sqlx::encode::IsNull {
+    String::encode_by_ref(&self.to_string(), buf)
   }
 }
 
@@ -123,8 +135,8 @@ pub struct CommandLine {
   #[arg(short, long)]
   pub check: bool,
   /// Execute database translate
-  #[arg(short, long, value_enum, name = "ORIGIN_LANGUAGE")]
-  pub translate: Option<Language>,
+  #[arg(short, long)]
+  pub translate: bool,
   /// Set the log level filter
   #[arg(short, long, default_value = "info")]
   pub log: LevelFilter,

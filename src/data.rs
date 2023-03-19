@@ -33,7 +33,7 @@ impl TranslateLogic for AchievementRewardLocale {
     let opencc: &OpenCC = self.locale.into();
     sqlx::query(Self::SQL)
       .bind(self.id)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(opencc.convert_text(&self.subject))
       .bind(opencc.convert_text(&self.text))
   }
@@ -64,7 +64,7 @@ impl TranslateLogic for BroadcastTextLocale {
   fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
     sqlx::query(Self::SQL)
       .bind(self.id)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(self.locale.convert_text(&self.male_text))
       .bind(self.verified_build)
   }
@@ -97,7 +97,7 @@ impl TranslateLogic for CreatureTemplateLocale {
     let opencc: &OpenCC = self.locale.into();
     sqlx::query(Self::SQL)
       .bind(self.entry)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(opencc.convert_text(&self.name))
       .bind(opencc.convert_text(&self.title))
       .bind(self.verified_build)
@@ -134,7 +134,7 @@ impl TranslateLogic for CreatureTextLocale {
       .bind(self.id)
       .bind(self.group_id)
       .bind(self.creature_id)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(self.locale.convert_text(&self.text))
   }
 }
@@ -165,7 +165,7 @@ impl TranslateLogic for GameobjectTemplateLocale {
     let opencc: &OpenCC = self.locale.into();
     sqlx::query(Self::SQL)
       .bind(self.entry)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(opencc.convert_text(&self.name))
       .bind(opencc.convert_text(&self.cast_bar_caption))
       .bind(self.verified_build)
@@ -202,7 +202,7 @@ impl TranslateLogic for GossipMenuOptionLocale {
     sqlx::query(Self::SQL)
       .bind(self.menu_id)
       .bind(self.option_id)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(opencc.convert_text(&self.option_text))
       .bind(opencc.convert_text(&self.box_text))
   }
@@ -233,7 +233,7 @@ impl TranslateLogic for ItemSetNamesLocale {
   fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
     sqlx::query(Self::SQL)
       .bind(self.id)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(self.locale.convert_text(&self.name))
       .bind(self.verified_build)
   }
@@ -267,7 +267,7 @@ impl TranslateLogic for ItemTemplateLocale {
     let opencc: &OpenCC = self.locale.into();
     sqlx::query(Self::SQL)
       .bind(self.id)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(opencc.convert_text(&self.name))
       .bind(opencc.convert_text(&self.description))
       .bind(self.verified_build)
@@ -328,7 +328,7 @@ impl TranslateLogic for NpcTextLocale {
     let opencc: &OpenCC = self.locale.into();
     sqlx::query(Self::SQL)
       .bind(self.id)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(opencc.convert_text(&self.text0_0))
       .bind(opencc.convert_text(&self.text0_1))
       .bind(opencc.convert_text(&self.text1_0))
@@ -372,7 +372,7 @@ impl TranslateLogic for PageTextLocale {
   fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
     sqlx::query(Self::SQL)
       .bind(self.id)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(self.locale.convert_text(&self.text))
       .bind(self.verified_build)
   }
@@ -436,7 +436,7 @@ impl TranslateLogic for QuestGreetingLocale {
     sqlx::query(Self::SQL)
       .bind(self.id)
       .bind(self.r#type)
-      .bind((!self.locale).to_string())
+      .bind(!self.locale)
       .bind(self.locale.convert_text(&self.greeting))
       .bind(self.verified_build)
   }
