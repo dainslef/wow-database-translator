@@ -34,6 +34,23 @@ pub fn init_logger() {
   debug!("Command line args: {COMMAND_LINE:?}");
 }
 
+#[derive(Clone, Debug, clap::ValueEnum)]
+pub enum ServerType {
+  Mangos0,
+  Mangos2,
+  AzerothCore,
+}
+
+impl ServerType {
+  pub fn database(&self) -> &'static str {
+    match self {
+      ServerType::AzerothCore => "acore_world",
+      ServerType::Mangos0 => "mangos0",
+      ServerType::Mangos2 => "mangos2",
+    }
+  }
+}
+
 /// Define the language types.
 #[derive(Clone, Copy, Display, Debug, strum_macros::EnumString, clap::ValueEnum)]
 pub enum Language {
@@ -64,13 +81,15 @@ impl Not for Language {
 
 impl Type<MySql> for Language {
   fn type_info() -> <MySql as sqlx::Database>::TypeInfo {
-    String::type_info()
+    // The sqlx 0.7 version add Type<Any> impl,
+    // so base types like String need to specific the Type trait.
+    <String as Type<MySql>>::type_info()
   }
 }
 
 impl Encode<'_, MySql> for Language {
   fn encode_by_ref(&self, buf: &mut Vec<u8>) -> sqlx::encode::IsNull {
-    String::encode_by_ref(&self.to_string(), buf)
+    <String as Encode<MySql>>::encode_by_ref(&self.to_string(), buf)
   }
 }
 
@@ -122,9 +141,6 @@ pub struct CommandLine {
   /// Set the database login password
   #[arg(short, long, default_value = "password")]
   pub password: String,
-  /// Set the default database
-  #[arg(short, long)]
-  pub database: Option<String>,
   /// Set the data batch size
   #[arg(short, long, default_value = "1000")]
   pub batch_size: usize,
@@ -137,6 +153,9 @@ pub struct CommandLine {
   /// Execute database translate
   #[arg(short, long)]
   pub translate: bool,
+  /// Set up the server type
+  #[arg(short, long, default_value = "azeroth-core")]
+  pub server_type: ServerType,
   /// Set the log level filter
   #[arg(short, long, default_value = "info")]
   pub log: LevelFilter,
@@ -152,15 +171,12 @@ static OPECC_TW2SP: Lazy<OpenCC> =
 pub static COMMAND_LINE: Lazy<CommandLine> = Lazy::new(|| CommandLine::parse());
 pub static POOL: Lazy<MySqlPool> = Lazy::new(|| {
   block_async({
-    let mut options = MySqlConnectOptions::new()
+    let options = MySqlConnectOptions::new()
       .host(&COMMAND_LINE.host)
       .port(COMMAND_LINE.port)
       .username(&COMMAND_LINE.username)
-      .password(&COMMAND_LINE.password);
-    if let Some(database) = &COMMAND_LINE.database {
-      options = options.database(database);
-    }
-    options.log_statements(LevelFilter::Debug);
+      .password(&COMMAND_LINE.password)
+      .log_statements(LevelFilter::Debug);
     MySqlPool::connect_with(options)
   })
   .expect("Init MySQL connection error!")

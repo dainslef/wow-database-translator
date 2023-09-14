@@ -1,8 +1,11 @@
 # WOW Database Translator
 It's an application to translate WOW locale database tables between `zhTW` and `zhCN` by OpenCC.
-It only supports table structure for Azerothcore currently.
+It supports table structures for Azerothcore and MaNGOS.
 
 ```
+WOW database translator
+It's an application to translate WOW locale database tables between zhTW and zhCN.
+
 Usage: wow-database-translator [OPTIONS]
 
 Options:
@@ -26,9 +29,6 @@ Options:
 
           [default: password]
 
-  -d, --database <DATABASE>
-          Set the default database
-
   -b, --batch-size <BATCH_SIZE>
           Set the data batch size
 
@@ -43,14 +43,20 @@ Options:
   -t, --translate
           Execute database translate
 
+  -s, --server-type <SERVER_TYPE>
+          Set up the server type
+
+          [default: azeroth-core]
+          [possible values: mangos0, mangos2, azeroth-core]
+
   -l, --log <LOG>
           Set the log level filter
 
           [default: info]
 
   -h, --help
-          Print help information (use `-h` for a summary)
+          Print help (see a summary with '-h')
 
   -V, --version
-          Print version information
+          Print version
 ```
