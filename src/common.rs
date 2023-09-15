@@ -34,25 +34,17 @@ pub fn init_logger() {
   debug!("Command line args: {COMMAND_LINE:?}");
 }
 
-#[derive(Clone, Debug, clap::ValueEnum)]
+#[derive(Clone, Debug, clap::ValueEnum, strum_macros::AsRefStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum ServerType {
   Mangos0,
+  Mangos1,
   Mangos2,
   AzerothCore,
 }
 
-impl ServerType {
-  pub fn database(&self) -> &'static str {
-    match self {
-      ServerType::AzerothCore => "acore_world",
-      ServerType::Mangos0 => "mangos0",
-      ServerType::Mangos2 => "mangos2",
-    }
-  }
-}
-
 /// Define the language types.
-#[derive(Clone, Copy, Display, Debug, strum_macros::EnumString, clap::ValueEnum)]
+#[derive(Clone, Copy, Display, Debug, strum_macros::EnumString)]
 pub enum Language {
   #[strum(serialize = "zhCN")]
   Chinese,
@@ -87,6 +79,7 @@ impl Type<MySql> for Language {
   }
 }
 
+/// Implement Encode to support the bind() method with custom type in SQLx.
 impl Encode<'_, MySql> for Language {
   fn encode_by_ref(&self, buf: &mut Vec<u8>) -> sqlx::encode::IsNull {
     <String as Encode<MySql>>::encode_by_ref(&self.to_string(), buf)

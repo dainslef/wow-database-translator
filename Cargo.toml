@@ -5,14 +5,14 @@ edition = "2021"
 authors = ["dainslef <dainslef@outlook.com>"]
 
 [dependencies]
-log = "*"
-env_logger = "*"
-once_cell = "*"
-const_format = "*"
-strum = "*"
-strum_macros = "*"
-opencc-rust = "*"
-clap = { version = "*", features = ["derive"] }
-anyhow = { version = "*", features = ["backtrace"] }
-tokio = { version = "*", features = ["full"] }
-sqlx = { version = "*", features = ["runtime-tokio-rustls", "mysql"] }
+log = "0.4"
+env_logger = "0.10"
+once_cell = "1.18"
+const_format = "0.2"
+strum = "0.25"
+strum_macros = "0.25"
+opencc-rust = "1.1"
+clap = { version = "4", features = ["derive"] }
+anyhow = { version = "1", features = ["backtrace"] }
+tokio = { version = "1.32", features = ["full"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "mysql"] }

@@ -66,7 +66,9 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
     locale_column,
   } = T::TARGET;
 
-  info!("Translating table {database}.{table} (total count: {origin_count}) ...");
+  info!(
+    "Translating table {database}.{table} from {origin_language} (total count: {origin_count}) ..."
+  );
 
   let mut translate_rows_count = 0;
   for i in (0..origin_count).step_by(COMMAND_LINE.batch_size) {
@@ -90,7 +92,7 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
     debug!("{database}.{table} Rows affected: {insert_results:?}");
   }
 
-  info!("Translate table {database}.{table} finished (translate rows count: {translate_rows_count}/{origin_count}) ...");
+  info!("Translate table {database}.{table} from {origin_language} finished (translate rows count: {translate_rows_count}/{origin_count}) ...");
   Ok(())
 }
 
@@ -160,10 +162,6 @@ pub async fn translate_tables() -> anyhow::Result<()> {
       azeroth_core::QuestRequestItemsLocale,
       azeroth_core::QuestTemplateLocale
     );
-    // Macro expanded:
-    // translate_table::<AchievementRewardLocale>().await?;
-    // translate_table::<BroadcastTextLocale>().await?;
-    // ...
   }
 
   Ok(())
@@ -229,6 +227,7 @@ pub async fn check_translations() -> anyhow::Result<()> {
     while let Some(result) = join_set.join_next().await {
       results.push(result??);
     }
+
     results
   } else {
     check_translations!(
@@ -301,13 +300,14 @@ async fn translate_mangos(
   let origin_locale_colume = mangos::column_name((*locale_column).into(), origin_language);
   let target_locale_column = mangos::column_name((*locale_column).into(), !origin_language);
 
-  info!("Translating table {database}.{table} (total count: {origin_count}) ...");
+  info!(
+    "Translating table {database}.{table} from {origin_language} (total count: {origin_count}) ..."
+  );
 
-  let mut translate_rows_count = 0;
+  let (mut translate_rows_count, batch_size) = (0, COMMAND_LINE.batch_size);
   for i in (0..origin_count).step_by(COMMAND_LINE.batch_size) {
     let results = sqlx::query::<MySql>(&format!(
-      "SELECT entry,{origin_locale_colume},{target_locale_column} FROM {database}.{table} WHERE {origin_locale_colume} IS NOT NULL and {origin_locale_colume} != '' AND ({target_locale_column} IS NULL OR {target_locale_column} = '') LIMIT {i}, {}",
-      COMMAND_LINE.batch_size
+      "SELECT entry,{origin_locale_colume},{target_locale_column} FROM {database}.{table} WHERE {origin_locale_colume} IS NOT NULL AND {origin_locale_colume} != '' AND ({target_locale_column} IS NULL OR {target_locale_column} = '') LIMIT {batch_size}"
     ))
     .fetch_all(&*POOL)
     .await?;
@@ -327,6 +327,7 @@ async fn translate_mangos(
       .execute(&*POOL)
       .await?
       .rows_affected();
+
       insert_results.push(rows_affected);
       translate_rows_count += rows_affected;
     }
@@ -336,18 +337,18 @@ async fn translate_mangos(
     debug!("{database}.{table} Rows affected: {insert_results:?}");
   }
 
-  info!("Translate table {database}.{table} finished (translate rows count: {translate_rows_count}/{origin_count}) ...");
+  info!("Translate table {database}.{table} from {origin_locale_colume} to {target_locale_column} finished (translate rows count: {translate_rows_count}/{origin_count}) ...");
 
   Ok(())
 }
 
 pub async fn translate_tables_mangos(database: &'static str) -> anyhow::Result<()> {
   let targets: Vec<TranslateTarget> = vec![
-    ("locales_creature", "name"),
-    ("locales_creature", "subname"),
-    ("locales_gameobject", "name"),
     // ("locales_gossip_menu_option", "option_text"),
     // ("locales_gossip_menu_option", "box_text"),
+    ("locales_gameobject", "name"),
+    ("locales_creature", "name"),
+    ("locales_creature", "subname"),
     ("locales_item", "name"),
     ("locales_item", "description"),
     ("locales_quest", "Title"),
@@ -397,9 +398,9 @@ pub async fn translate_tables_mangos(database: &'static str) -> anyhow::Result<(
     Ok(())
   }
 
-  for translate_target in targets {
-    translate(Language::Chinese, &translate_target).await?;
-    translate(Language::Taiwanese, &translate_target).await?;
+  for translate_target in &targets {
+    translate(Language::Chinese, translate_target).await?;
+    translate(Language::Taiwanese, translate_target).await?;
   }
 
   Ok(())

@@ -13,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
   if COMMAND_LINE.translate {
     match &COMMAND_LINE.server_type {
       ServerType::AzerothCore => translate_tables().await?,
-      v => translate_tables_mangos(v.database()).await?,
+      v => translate_tables_mangos(v.as_ref()).await?,
     }
   } else if COMMAND_LINE.check {
     check_translations().await?;
