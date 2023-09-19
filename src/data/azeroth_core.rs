@@ -2,9 +2,9 @@ use crate::{
   common::{ConvertText, Language},
   translate::*,
 };
-use const_format::formatcp;
+use once_cell::sync::Lazy;
 use opencc_rust::OpenCC;
-use sqlx::{mysql::MySqlArguments, query::Query, MySql};
+use sqlx::{MySql, QueryBuilder};
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct AchievementRewardLocale {
@@ -20,22 +20,39 @@ pub struct AchievementRewardLocale {
 }
 
 impl TranslateLogic for AchievementRewardLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "achievement_reward_locale", "Locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "achievement_reward_locale", "Locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, Locale, Subject, Text) VALUES (?, ?, ?, ?)",
-    AchievementRewardLocale::TARGET.database,
-    AchievementRewardLocale::TARGET.table
-  );
-
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
     let opencc: &OpenCC = self.locale.into();
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind(!self.locale)
-      .bind(opencc.convert_text(&self.subject))
-      .bind(opencc.convert_text(&self.text))
+
+    // let sql = format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, Locale, Subject, Text) VALUES (?, ?, ?, ?)",
+    //   Self::TARGET.database,
+    //   Self::TARGET.table
+    // );
+    // sqlx::query(&sql)
+    //   .bind(self.id)
+    //   .bind(!self.locale)
+    //   .bind(opencc.convert_text(&self.subject))
+    //   .bind(opencc.convert_text(&self.text))
+
+    let mut builder = QueryBuilder::new(format!(
+      "INSERT IGNORE INTO {}.{} (ID, Locale, Subject, Text) VALUES ",
+      Self::TARGET.database,
+      Self::TARGET.table
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind(!self.locale)
+      .push_bind(opencc.convert_text(&self.subject))
+      .push_bind(opencc.convert_text(&self.text))
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -52,21 +69,37 @@ pub struct BroadcastTextLocale {
 }
 
 impl TranslateLogic for BroadcastTextLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "broadcast_text_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "broadcast_text_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, locale, MaleText, VerifiedBuild) VALUES (?, ?, ?, ?)",
-    BroadcastTextLocale::TARGET.database,
-    BroadcastTextLocale::TARGET.table
-  );
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
+    // let sql = format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, locale, MaleText, VerifiedBuild) VALUES (?, ?, ?, ?)",
+    //   BroadcastTextLocale::TARGET.database,
+    //   BroadcastTextLocale::TARGET.table
+    // );
+    // sqlx::query(&sql)
+    //   .bind(self.id)
+    //   .bind(!self.locale)
+    //   .bind(self.locale.convert_text(&self.male_text))
+    //   .bind(self.verified_build)
 
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind(!self.locale)
-      .bind(self.locale.convert_text(&self.male_text))
-      .bind(self.verified_build)
+    let mut builder = QueryBuilder::new(format!(
+      "INSERT IGNORE INTO {}.{} (ID, locale, MaleText, VerifiedBuild) VALUES ",
+      Self::TARGET.database,
+      Self::TARGET.table
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind(!self.locale)
+      .push_bind(self.locale.convert_text(&self.male_text))
+      .push_bind(self.verified_build)
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -84,23 +117,39 @@ pub struct CreatureTemplateLocale {
 }
 
 impl TranslateLogic for CreatureTemplateLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "creature_template_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "creature_template_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (entry, locale, Name, Title, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
-    CreatureTemplateLocale::TARGET.database,
-    CreatureTemplateLocale::TARGET.table
-  );
-
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
     let opencc: &OpenCC = self.locale.into();
-    sqlx::query(Self::SQL)
-      .bind(self.entry)
-      .bind(!self.locale)
-      .bind(opencc.convert_text(&self.name))
-      .bind(opencc.convert_text(&self.title))
-      .bind(self.verified_build)
+    // let sql = format!(
+    //   "INSERT IGNORE INTO {}.{} (entry, locale, Name, Title, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
+    //   CreatureTemplateLocale::TARGET.database,
+    //   CreatureTemplateLocale::TARGET.table
+    // );
+    // sqlx::query(&sql)
+    //   .bind(self.entry)
+    //   .bind(!self.locale)
+    //   .bind(opencc.convert_text(&self.name))
+    //   .bind(opencc.convert_text(&self.title))
+    //   .bind(self.verified_build)
+
+    let mut builder = QueryBuilder::new(format!(
+      "INSERT IGNORE INTO {}.{} (entry, locale, Name, Title, VerifiedBuild) VALUES ",
+      Self::TARGET.database,
+      Self::TARGET.table
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.entry)
+      .push_bind(!self.locale)
+      .push_bind(opencc.convert_text(&self.name))
+      .push_bind(opencc.convert_text(&self.title))
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -120,22 +169,38 @@ pub struct CreatureTextLocale {
 }
 
 impl TranslateLogic for CreatureTextLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "creature_text_locale", "Locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "creature_text_locale", "Locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, GroupID, CreatureID, Locale, Text) VALUES (?, ?, ?, ?, ?)",
-    CreatureTextLocale::TARGET.database,
-    CreatureTextLocale::TARGET.table,
-  );
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
+    // sqlx::query(&format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, GroupID, CreatureID, Locale, Text) VALUES (?, ?, ?, ?, ?)",
+    //   CreatureTextLocale::TARGET.database,
+    //   CreatureTextLocale::TARGET.table,
+    // ))
+    // .bind(self.id)
+    // .bind(self.group_id)
+    // .bind(self.creature_id)
+    // .bind(!self.locale)
+    // .bind(self.locale.convert_text(&self.text))
 
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind(self.group_id)
-      .bind(self.creature_id)
-      .bind(!self.locale)
-      .bind(self.locale.convert_text(&self.text))
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (ID, GroupID, CreatureID, Locale, Text) VALUES ",
+      CreatureTextLocale::TARGET.database,
+      CreatureTextLocale::TARGET.table,
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind(self.group_id)
+      .push_bind(self.creature_id)
+      .push_bind(!self.locale)
+      .push_bind(self.locale.convert_text(&self.text))
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -152,23 +217,39 @@ pub struct GameobjectTemplateLocale {
 }
 
 impl TranslateLogic for GameobjectTemplateLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "gameobject_template_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "gameobject_template_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (entry, locale, name, castBarCaption, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
-    GameobjectTemplateLocale::TARGET.database,
-    GameobjectTemplateLocale::TARGET.table
-  );
-
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
     let opencc: &OpenCC = self.locale.into();
-    sqlx::query(Self::SQL)
-      .bind(self.entry)
-      .bind(!self.locale)
-      .bind(opencc.convert_text(&self.name))
-      .bind(opencc.convert_text(&self.cast_bar_caption))
-      .bind(self.verified_build)
+    // sqlx::query(&format!(
+    //   "INSERT IGNORE INTO {}.{} (entry, locale, name, castBarCaption, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
+    //   GameobjectTemplateLocale::TARGET.database,
+    //   GameobjectTemplateLocale::TARGET.table
+    // ))
+    //   .bind(self.entry)
+    //   .bind(!self.locale)
+    //   .bind(opencc.convert_text(&self.name))
+    //   .bind(opencc.convert_text(&self.cast_bar_caption))
+    //   .bind(self.verified_build)
+
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (entry, locale, name, castBarCaption, VerifiedBuild) VALUES ",
+      GameobjectTemplateLocale::TARGET.database,
+      GameobjectTemplateLocale::TARGET.table
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.entry)
+      .push_bind(!self.locale)
+      .push_bind(opencc.convert_text(&self.name))
+      .push_bind(opencc.convert_text(&self.cast_bar_caption))
+      .push_bind(self.verified_build)
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -188,23 +269,38 @@ pub struct GossipMenuOptionLocale {
 }
 
 impl TranslateLogic for GossipMenuOptionLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "gossip_menu_option_locale", "Locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "gossip_menu_option_locale", "Locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (MenuID, OptionID, Locale, OptionText, BoxText) VALUES (?, ?, ?, ?, ?)",
-    GossipMenuOptionLocale::TARGET.database,
-    GossipMenuOptionLocale::TARGET.table,
-  );
-
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
     let opencc: &OpenCC = self.locale.into();
-    sqlx::query(Self::SQL)
-      .bind(self.menu_id)
-      .bind(self.option_id)
-      .bind(!self.locale)
-      .bind(opencc.convert_text(&self.option_text))
-      .bind(opencc.convert_text(&self.box_text))
+    // sqlx::query(&    format!(
+    //   "INSERT IGNORE INTO {}.{} (MenuID, OptionID, Locale, OptionText, BoxText) VALUES (?, ?, ?, ?, ?)",
+    //   GossipMenuOptionLocale::TARGET.database,
+    //   GossipMenuOptionLocale::TARGET.table,
+    // ))
+    //   .bind(self.menu_id)
+    //   .bind(self.option_id)
+    //   .bind(!self.locale)
+    //   .bind(opencc.convert_text(&self.option_text))
+    //   .bind(opencc.convert_text(&self.box_text))
+
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (MenuID, OptionID, Locale, OptionText, BoxText) VALUES ",
+      GossipMenuOptionLocale::TARGET.database,
+      GossipMenuOptionLocale::TARGET.table,
+    ));
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.menu_id)
+      .push_bind(self.option_id)
+      .push_bind(!self.locale)
+      .push_bind(opencc.convert_text(&self.option_text))
+      .push_bind(opencc.convert_text(&self.box_text))
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -221,21 +317,35 @@ pub struct ItemSetNamesLocale {
 }
 
 impl TranslateLogic for ItemSetNamesLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "item_set_names_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "item_set_names_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, locale, Name, VerifiedBuild) VALUES (?, ?, ?, ?)",
-    ItemSetNamesLocale::TARGET.database,
-    ItemSetNamesLocale::TARGET.table,
-  );
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
+    // sqlx::query(&format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, locale, Name, VerifiedBuild) VALUES (?, ?, ?, ?)",
+    //   ItemSetNamesLocale::TARGET.database,
+    //   ItemSetNamesLocale::TARGET.table,
+    // ))
+    // .bind(self.id)
+    // .bind(!self.locale)
+    // .bind(self.locale.convert_text(&self.name))
+    // .bind(self.verified_build)
 
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind(!self.locale)
-      .bind(self.locale.convert_text(&self.name))
-      .bind(self.verified_build)
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (ID, locale, Name, VerifiedBuild) VALUES ",
+      ItemSetNamesLocale::TARGET.database,
+      ItemSetNamesLocale::TARGET.table,
+    ));
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind(!self.locale)
+      .push_bind(self.locale.convert_text(&self.name))
+      .push_bind(self.verified_build)
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -254,23 +364,39 @@ pub struct ItemTemplateLocale {
 }
 
 impl TranslateLogic for ItemTemplateLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "item_template_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "item_template_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, locale, Name, Description, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
-    ItemTemplateLocale::TARGET.database,
-    ItemTemplateLocale::TARGET.table,
-  );
-
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
     let opencc: &OpenCC = self.locale.into();
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind(!self.locale)
-      .bind(opencc.convert_text(&self.name))
-      .bind(opencc.convert_text(&self.description))
-      .bind(self.verified_build)
+    // sqlx::query(&  format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, locale, Name, Description, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
+    //   ItemTemplateLocale::TARGET.database,
+    //   ItemTemplateLocale::TARGET.table,
+    // ))
+    //   .bind(self.id)
+    //   .bind(!self.locale)
+    //   .bind(opencc.convert_text(&self.name))
+    //   .bind(opencc.convert_text(&self.description))
+    //   .bind(self.verified_build)
+
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (ID, locale, Name, Description, VerifiedBuild) VALUES ",
+      ItemTemplateLocale::TARGET.database,
+      ItemTemplateLocale::TARGET.table,
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind(!self.locale)
+      .push_bind(opencc.convert_text(&self.name))
+      .push_bind(opencc.convert_text(&self.description))
+      .push_bind(self.verified_build)
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -316,35 +442,65 @@ pub struct NpcTextLocale {
 }
 
 impl TranslateLogic for NpcTextLocale {
-  const TARGET: TranslateTarget = TranslateTarget::new("acore_world", "npc_text_locale", "Locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "npc_text_locale", "Locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, Locale, Text0_0, Text0_1, Text1_0, Text1_1, Text2_0, Text2_1, Text3_0,Text3_1, Text4_0, Text4_1, Text5_0, Text5_1, Text6_0, Text6_1, Text7_0, Text7_1) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    NpcTextLocale::TARGET.database,
-    NpcTextLocale::TARGET.table,
-  );
-
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
     let opencc: &OpenCC = self.locale.into();
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind(!self.locale)
-      .bind(opencc.convert_text(&self.text0_0))
-      .bind(opencc.convert_text(&self.text0_1))
-      .bind(opencc.convert_text(&self.text1_0))
-      .bind(opencc.convert_text(&self.text1_1))
-      .bind(opencc.convert_text(&self.text2_0))
-      .bind(opencc.convert_text(&self.text2_1))
-      .bind(opencc.convert_text(&self.text3_0))
-      .bind(opencc.convert_text(&self.text3_1))
-      .bind(opencc.convert_text(&self.text4_0))
-      .bind(opencc.convert_text(&self.text4_1))
-      .bind(opencc.convert_text(&self.text5_0))
-      .bind(opencc.convert_text(&self.text5_1))
-      .bind(opencc.convert_text(&self.text6_0))
-      .bind(opencc.convert_text(&self.text6_1))
-      .bind(opencc.convert_text(&self.text7_0))
-      .bind(opencc.convert_text(&self.text7_1))
+    // sqlx::query(&    format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, Locale, Text0_0, Text0_1, Text1_0, Text1_1, Text2_0, Text2_1, Text3_0,Text3_1, Text4_0, Text4_1, Text5_0, Text5_1, Text6_0, Text6_1, Text7_0, Text7_1) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    //   NpcTextLocale::TARGET.database,
+    //   NpcTextLocale::TARGET.table,
+    // ))
+    //   .bind(self.id)
+    //   .bind(!self.locale)
+    //   .bind(opencc.convert_text(&self.text0_0))
+    //   .bind(opencc.convert_text(&self.text0_1))
+    //   .bind(opencc.convert_text(&self.text1_0))
+    //   .bind(opencc.convert_text(&self.text1_1))
+    //   .bind(opencc.convert_text(&self.text2_0))
+    //   .bind(opencc.convert_text(&self.text2_1))
+    //   .bind(opencc.convert_text(&self.text3_0))
+    //   .bind(opencc.convert_text(&self.text3_1))
+    //   .bind(opencc.convert_text(&self.text4_0))
+    //   .bind(opencc.convert_text(&self.text4_1))
+    //   .bind(opencc.convert_text(&self.text5_0))
+    //   .bind(opencc.convert_text(&self.text5_1))
+    //   .bind(opencc.convert_text(&self.text6_0))
+    //   .bind(opencc.convert_text(&self.text6_1))
+    //   .bind(opencc.convert_text(&self.text7_0))
+    //   .bind(opencc.convert_text(&self.text7_1))
+
+    let mut builder = sqlx::QueryBuilder::new(&    format!(
+      "INSERT IGNORE INTO {}.{} (ID, Locale, Text0_0, Text0_1, Text1_0, Text1_1, Text2_0, Text2_1, Text3_0,Text3_1, Text4_0, Text4_1, Text5_0, Text5_1, Text6_0, Text6_1, Text7_0, Text7_1) VALUES ",
+      NpcTextLocale::TARGET.database,
+      NpcTextLocale::TARGET.table,
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind(!self.locale)
+      .push_bind(opencc.convert_text(&self.text0_0))
+      .push_bind(opencc.convert_text(&self.text0_1))
+      .push_bind(opencc.convert_text(&self.text1_0))
+      .push_bind(opencc.convert_text(&self.text1_1))
+      .push_bind(opencc.convert_text(&self.text2_0))
+      .push_bind(opencc.convert_text(&self.text2_1))
+      .push_bind(opencc.convert_text(&self.text3_0))
+      .push_bind(opencc.convert_text(&self.text3_1))
+      .push_bind(opencc.convert_text(&self.text4_0))
+      .push_bind(opencc.convert_text(&self.text4_1))
+      .push_bind(opencc.convert_text(&self.text5_0))
+      .push_bind(opencc.convert_text(&self.text5_1))
+      .push_bind(opencc.convert_text(&self.text6_0))
+      .push_bind(opencc.convert_text(&self.text6_1))
+      .push_bind(opencc.convert_text(&self.text7_0))
+      .push_bind(opencc.convert_text(&self.text7_1))
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -361,20 +517,36 @@ pub struct PageTextLocale {
 }
 
 impl TranslateLogic for PageTextLocale {
-  const TARGET: TranslateTarget = TranslateTarget::new("acore_world", "page_text_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "page_text_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, locale, Text, VerifiedBuild) VALUES (?, ?, ?, ?)",
-    PageTextLocale::TARGET.database,
-    PageTextLocale::TARGET.table
-  );
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
+    // sqlx::query(&format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, locale, Text, VerifiedBuild) VALUES (?, ?, ?, ?)",
+    //   PageTextLocale::TARGET.database,
+    //   PageTextLocale::TARGET.table
+    // ))
+    // .bind(self.id)
+    // .bind(!self.locale)
+    // .bind(self.locale.convert_text(&self.text))
+    // .bind(self.verified_build)
 
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind(!self.locale)
-      .bind(self.locale.convert_text(&self.text))
-      .bind(self.verified_build)
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (ID, locale, Text, VerifiedBuild) VALUES ",
+      PageTextLocale::TARGET.database,
+      PageTextLocale::TARGET.table
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind(!self.locale)
+      .push_bind(self.locale.convert_text(&self.text))
+      .push_bind(self.verified_build)
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -391,21 +563,38 @@ pub struct PointsOfInterestLocale {
 }
 
 impl TranslateLogic for PointsOfInterestLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "points_of_interest_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "points_of_interest_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, locale, Name, VerifiedBuild) VALUES (?, ?, ?, ?)",
-    PointsOfInterestLocale::TARGET.database,
-    PointsOfInterestLocale::TARGET.table
-  );
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
+    // let sql = format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, locale, Name, VerifiedBuild) VALUES (?, ?, ?, ?)",
+    //   PointsOfInterestLocale::TARGET.database,
+    //   PointsOfInterestLocale::TARGET.table
+    // );
+    // sqlx::query(&sql)
+    //   .bind(self.id)
+    //   .bind((!self.locale).to_string())
+    //   .bind(self.locale.convert_text(&self.name))
+    //   .bind(self.verified_build)
 
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind((!self.locale).to_string())
-      .bind(self.locale.convert_text(&self.name))
-      .bind(self.verified_build)
+    let sql = format!(
+      "INSERT IGNORE INTO {}.{} (ID, locale, Name, VerifiedBuild) VALUES ",
+      PointsOfInterestLocale::TARGET.database,
+      PointsOfInterestLocale::TARGET.table
+    );
+    let mut builder = sqlx::QueryBuilder::new(&sql);
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind((!self.locale).to_string())
+      .push_bind(self.locale.convert_text(&self.name))
+      .push_bind(self.verified_build)
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -423,22 +612,38 @@ pub struct QuestGreetingLocale {
 }
 
 impl TranslateLogic for QuestGreetingLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "quest_greeting_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "quest_greeting_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, type, locale, Greeting, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
-    QuestGreetingLocale::TARGET.database,
-    QuestGreetingLocale::TARGET.table
-  );
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
+    // sqlx::query(&format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, type, locale, Greeting, VerifiedBuild) VALUES (?, ?, ?, ?, ?)",
+    //   QuestGreetingLocale::TARGET.database,
+    //   QuestGreetingLocale::TARGET.table
+    // ))
+    // .bind(self.id)
+    // .bind(self.r#type)
+    // .bind(!self.locale)
+    // .bind(self.locale.convert_text(&self.greeting))
+    // .bind(self.verified_build)
 
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind(self.r#type)
-      .bind(!self.locale)
-      .bind(self.locale.convert_text(&self.greeting))
-      .bind(self.verified_build)
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (ID, type, locale, Greeting, VerifiedBuild) VALUES ",
+      QuestGreetingLocale::TARGET.database,
+      QuestGreetingLocale::TARGET.table
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind(self.r#type)
+      .push_bind(!self.locale)
+      .push_bind(self.locale.convert_text(&self.greeting))
+      .push_bind(self.verified_build)
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -455,21 +660,35 @@ pub struct QuestOfferRewardLocale {
 }
 
 impl TranslateLogic for QuestOfferRewardLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "quest_offer_reward_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "quest_offer_reward_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, locale, RewardText, VerifiedBuild) VALUES (?, ?, ?, ?)",
-    QuestOfferRewardLocale::TARGET.database,
-    QuestOfferRewardLocale::TARGET.table
-  );
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
+    // sqlx::query(&format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, locale, RewardText, VerifiedBuild) VALUES (?, ?, ?, ?)",
+    //   QuestOfferRewardLocale::TARGET.database,
+    //   QuestOfferRewardLocale::TARGET.table
+    // ))
+    // .bind(self.id)
+    // .bind((!self.locale).to_string())
+    // .bind(self.locale.convert_text(&self.reward_text))
+    // .bind(self.verified_build)
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (ID, locale, RewardText, VerifiedBuild) VALUES ",
+      QuestOfferRewardLocale::TARGET.database,
+      QuestOfferRewardLocale::TARGET.table
+    ));
 
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind((!self.locale).to_string())
-      .bind(self.locale.convert_text(&self.reward_text))
-      .bind(self.verified_build)
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind((!self.locale).to_string())
+      .push_bind(self.locale.convert_text(&self.reward_text))
+      .push_bind(self.verified_build)
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -486,21 +705,36 @@ pub struct QuestRequestItemsLocale {
 }
 
 impl TranslateLogic for QuestRequestItemsLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "quest_request_items_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "quest_request_items_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, locale, CompletionText, VerifiedBuild) VALUES (?, ?, ?, ?)",
-    QuestRequestItemsLocale::TARGET.database,
-    QuestRequestItemsLocale::TARGET.table
-  );
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
+    // sqlx::query(&format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, locale, CompletionText, VerifiedBuild) VALUES (?, ?, ?, ?)",
+    //   QuestRequestItemsLocale::TARGET.database,
+    //   QuestRequestItemsLocale::TARGET.table
+    // ))
+    // .bind(self.id)
+    // .bind((!self.locale).to_string())
+    // .bind(self.locale.convert_text(&self.completion_text))
+    // .bind(self.verified_build)
 
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind((!self.locale).to_string())
-      .bind(self.locale.convert_text(&self.completion_text))
-      .bind(self.verified_build)
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (ID, locale, CompletionText, VerifiedBuild) VALUES ",
+      QuestRequestItemsLocale::TARGET.database,
+      QuestRequestItemsLocale::TARGET.table
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind((!self.locale).to_string())
+      .push_bind(self.locale.convert_text(&self.completion_text))
+      .push_bind(self.verified_build)
+      .push_unseparated(")");
+
+    builder
   }
 }
 
@@ -531,30 +765,53 @@ pub struct QuestTemplateLocale {
 }
 
 impl TranslateLogic for QuestTemplateLocale {
-  const TARGET: TranslateTarget =
-    TranslateTarget::new("acore_world", "quest_template_locale", "locale");
+  const TARGET: Lazy<TranslateTarget> =
+    Lazy::new(|| TranslateTarget::new("acore_world", "quest_template_locale", "locale"));
 
-  const SQL: &'static str = formatcp!(
-    "INSERT IGNORE INTO {}.{} (ID, locale, Title, Details, Objectives, EndText, CompletedText,
-      ObjectiveText1, ObjectiveText2, ObjectiveText3, ObjectiveText4)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    QuestTemplateLocale::TARGET.database,
-    QuestTemplateLocale::TARGET.table
-  );
-
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments> {
+  fn build_query(&self) -> QueryBuilder<'static, MySql> {
     let opencc: &OpenCC = self.locale.into();
-    sqlx::query(Self::SQL)
-      .bind(self.id)
-      .bind((!self.locale).to_string())
-      .bind(opencc.convert_text(&self.title))
-      .bind(opencc.convert_text(&self.details))
-      .bind(opencc.convert_text(&self.objectives))
-      .bind(opencc.convert_text(&self.end_text))
-      .bind(opencc.convert_text(&self.completed_text))
-      .bind(opencc.convert_text(&self.objective_text_1))
-      .bind(opencc.convert_text(&self.objective_text_2))
-      .bind(opencc.convert_text(&self.objective_text_3))
-      .bind(opencc.convert_text(&self.objective_text_4))
+    // sqlx::query(&format!(
+    //   "INSERT IGNORE INTO {}.{} (ID, locale, Title, Details, Objectives, EndText, CompletedText,
+    //   ObjectiveText1, ObjectiveText2, ObjectiveText3, ObjectiveText4)
+    //   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    //   QuestTemplateLocale::TARGET.database,
+    //   QuestTemplateLocale::TARGET.table
+    // ))
+    // .bind(self.id)
+    // .bind((!self.locale).to_string())
+    // .bind(opencc.convert_text(&self.title))
+    // .bind(opencc.convert_text(&self.details))
+    // .bind(opencc.convert_text(&self.objectives))
+    // .bind(opencc.convert_text(&self.end_text))
+    // .bind(opencc.convert_text(&self.completed_text))
+    // .bind(opencc.convert_text(&self.objective_text_1))
+    // .bind(opencc.convert_text(&self.objective_text_2))
+    // .bind(opencc.convert_text(&self.objective_text_3))
+    // .bind(opencc.convert_text(&self.objective_text_4))
+
+    let mut builder = sqlx::QueryBuilder::new(&format!(
+      "INSERT IGNORE INTO {}.{} (ID, locale, Title, Details, Objectives, EndText, CompletedText,
+      ObjectiveText1, ObjectiveText2, ObjectiveText3, ObjectiveText4) VALUES ",
+      QuestTemplateLocale::TARGET.database,
+      QuestTemplateLocale::TARGET.table
+    ));
+
+    builder
+      .separated(",")
+      .push_unseparated("(")
+      .push_bind(self.id)
+      .push_bind((!self.locale).to_string())
+      .push_bind(opencc.convert_text(&self.title))
+      .push_bind(opencc.convert_text(&self.details))
+      .push_bind(opencc.convert_text(&self.objectives))
+      .push_bind(opencc.convert_text(&self.end_text))
+      .push_bind(opencc.convert_text(&self.completed_text))
+      .push_bind(opencc.convert_text(&self.objective_text_1))
+      .push_bind(opencc.convert_text(&self.objective_text_2))
+      .push_bind(opencc.convert_text(&self.objective_text_3))
+      .push_bind(opencc.convert_text(&self.objective_text_4))
+      .push_unseparated(")");
+
+    builder
   }
 }

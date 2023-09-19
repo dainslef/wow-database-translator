@@ -3,49 +3,52 @@ use crate::{
   data::{azeroth_core, mangos},
 };
 use log::{debug, info};
+use once_cell::sync::Lazy;
 use opencc_rust::OpenCC;
-use sqlx::{
-  mysql::{MySqlArguments, MySqlRow},
-  query::Query,
-  MySql, Row,
-};
+use sqlx::{mysql::MySqlRow, MySql, QueryBuilder, Row};
 use tokio::{task::JoinSet, try_join};
 
 pub struct TranslateTarget {
-  pub database: &'static str,
-  pub table: &'static str,
-  pub locale_column: &'static str,
+  pub database: String,
+  pub table: String,
+  pub locale_columns: Vec<String>,
 }
 
 impl TranslateTarget {
-  pub const fn new(
-    database: &'static str,
-    table: &'static str,
-    locale_column: &'static str,
+  pub fn new(database: impl ToString, table: impl ToString, locale_column: impl ToString) -> Self {
+    TranslateTarget {
+      database: database.to_string(),
+      table: table.to_string(),
+      locale_columns: vec![locale_column.to_string()],
+    }
+  }
+
+  pub fn multi_columns(
+    database: impl ToString,
+    table: impl ToString,
+    locale_columns: Vec<String>,
   ) -> Self {
     TranslateTarget {
-      database,
-      table,
-      locale_column,
+      database: database.to_string(),
+      table: table.to_string(),
+      locale_columns,
     }
   }
 }
 
 pub trait TranslateLogic {
-  const TARGET: TranslateTarget;
-  const SQL: &'static str;
-  fn bind_query(&self) -> Query<'static, MySql, MySqlArguments>;
+  const TARGET: Lazy<TranslateTarget>;
+  fn build_query(&self) -> QueryBuilder<'static, MySql>;
 }
 
-async fn data_count<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic>(
-  origin_language: Language,
-) -> anyhow::Result<i64> {
+async fn data_count<T: TranslateLogic>(origin_language: Language) -> anyhow::Result<i64> {
   let TranslateTarget {
     database,
     table,
-    locale_column,
-  } = T::TARGET;
+    locale_columns,
+  } = &*T::TARGET;
 
+  let locale_column = &locale_columns[0];
   let count: i64 = sqlx::query::<MySql>(&format!(
     "SELECT count(*) FROM {database}.{table} WHERE {locale_column} = '{origin_language}'"
   ))
@@ -63,13 +66,14 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
   let TranslateTarget {
     database,
     table,
-    locale_column,
-  } = T::TARGET;
+    locale_columns,
+  } = &*T::TARGET;
 
   info!(
     "Translating table {database}.{table} from {origin_language} (total count: {origin_count}) ..."
   );
 
+  let locale_column = &locale_columns[0];
   let mut translate_rows_count = 0;
   for i in (0..origin_count).step_by(COMMAND_LINE.batch_size) {
     let results = sqlx::query_as::<MySql, T>(&format!(
@@ -82,7 +86,12 @@ async fn translate<T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + Trans
     let mut insert_results = vec![];
     for v in results {
       // Execute the insert SQL.
-      let rows_affected = v.bind_query().execute(&*POOL).await?.rows_affected();
+      let rows_affected = v
+        .build_query()
+        .build()
+        .execute(&*POOL)
+        .await?
+        .rows_affected();
       insert_results.push(rows_affected);
       translate_rows_count += rows_affected;
     }
@@ -167,12 +176,10 @@ pub async fn translate_tables() -> anyhow::Result<()> {
   Ok(())
 }
 
-async fn check_translation<
-  T: for<'r> sqlx::FromRow<'r, MySqlRow> + Send + Unpin + TranslateLogic,
->() -> anyhow::Result<(bool, &'static str, (i64, i64))> {
+async fn check_translation<T: TranslateLogic>() -> anyhow::Result<(bool, String, (i64, i64))> {
   let TranslateTarget {
     database, table, ..
-  } = T::TARGET;
+  } = &*T::TARGET;
 
   let taiwanese_count = data_count::<T>(Language::Taiwanese).await?;
   let chinese_count = data_count::<T>(Language::Chinese).await?;
@@ -183,7 +190,7 @@ async fn check_translation<
 
   Ok((
     taiwanese_count == chinese_count,
-    table,
+    table.clone(),
     (taiwanese_count, chinese_count),
   ))
 }
@@ -266,39 +273,42 @@ pub async fn check_translations() -> anyhow::Result<()> {
 async fn data_count_mangos(
   translate_target: &TranslateTarget,
   origin_language: Language,
-) -> anyhow::Result<i64> {
+) -> anyhow::Result<Vec<(String, i64)>> {
   let TranslateTarget {
     database,
     table,
-    locale_column,
+    locale_columns,
   } = translate_target;
+  let mut counts = vec![];
 
-  let origin_locale_colume = mangos::column_name((*locale_column).into(), origin_language);
-  let target_locale_column = mangos::column_name((*locale_column).into(), !origin_language);
+  for locale_column in locale_columns {
+    let origin_locale_colume = mangos::column_name(locale_column, origin_language);
+    let target_locale_column = mangos::column_name(locale_column, !origin_language);
 
-  let count: i64 = sqlx::query::<MySql>(&format!(
-    "SELECT count(*) FROM {database}.{table} WHERE {origin_locale_colume} IS NOT NULL AND {origin_locale_colume} != '' AND ({target_locale_column} IS NULL OR {target_locale_column} = '')"
-  ))
-  .fetch_one(&*POOL)
-  .await?
-  .get("count(*)");
+    let count: i64 = sqlx::query::<MySql>(&format!(
+      "SELECT count(*) FROM {database}.{table} WHERE {origin_locale_colume} IS NOT NULL AND {origin_locale_colume} != '' AND ({target_locale_column} IS NULL OR {target_locale_column} = '')"))
+      .fetch_one(&*POOL)
+      .await?
+      .get("count(*)");
 
-  Ok(count)
+    counts.push((table.clone(), count));
+  }
+
+  Ok(counts)
 }
 
 async fn translate_mangos(
   translate_target: &TranslateTarget,
   origin_language: Language,
   origin_count: i64,
+  locale_column: String,
 ) -> anyhow::Result<()> {
   let TranslateTarget {
-    database,
-    table,
-    locale_column,
+    database, table, ..
   } = translate_target;
 
-  let origin_locale_colume = mangos::column_name((*locale_column).into(), origin_language);
-  let target_locale_column = mangos::column_name((*locale_column).into(), !origin_language);
+  let origin_locale_colume = mangos::column_name(&locale_column, origin_language);
+  let target_locale_column = mangos::column_name(locale_column, !origin_language);
 
   info!(
     "Translating table {database}.{table} from {origin_language} (total count: {origin_count}) ..."
@@ -346,44 +356,40 @@ pub async fn translate_tables_mangos(database: &'static str) -> anyhow::Result<(
   let targets: Vec<TranslateTarget> = vec![
     // ("locales_gossip_menu_option", "option_text"),
     // ("locales_gossip_menu_option", "box_text"),
-    ("locales_gameobject", "name"),
-    ("locales_creature", "name"),
-    ("locales_creature", "subname"),
-    ("locales_item", "name"),
-    ("locales_item", "description"),
-    ("locales_quest", "Title"),
-    ("locales_quest", "Details"),
-    ("locales_quest", "Objectives"),
-    ("locales_quest", "OfferRewardText"),
-    ("locales_quest", "EndText"),
-    ("locales_quest", "ObjectiveText1"),
-    ("locales_quest", "ObjectiveText2"),
-    ("locales_quest", "ObjectiveText3"),
-    ("locales_quest", "ObjectiveText4"),
-    ("locales_points_of_interest", "icon_name"),
-    ("locales_page_text", "Text"),
-    ("locales_npc_text", "Text0_0"),
-    ("locales_npc_text", "Text0_1"),
-    ("locales_npc_text", "Text1_0"),
-    ("locales_npc_text", "Text1_1"),
-    ("locales_npc_text", "Text2_0"),
-    ("locales_npc_text", "Text2_1"),
-    ("locales_npc_text", "Text3_0"),
-    ("locales_npc_text", "Text3_1"),
-    ("locales_npc_text", "Text4_0"),
-    ("locales_npc_text", "Text4_1"),
-    ("locales_npc_text", "Text5_0"),
-    ("locales_npc_text", "Text5_1"),
-    ("locales_npc_text", "Text6_0"),
-    ("locales_npc_text", "Text6_1"),
-    ("locales_npc_text", "Text7_0"),
-    ("locales_npc_text", "Text7_1"),
+    ("locales_gameobject", vec!["name"]),
+    ("locales_creature", vec!["name", "subname"]),
+    ("locales_item", vec!["name", "description"]),
+    (
+      "locales_quest",
+      vec![
+        "Title",
+        "Details",
+        "Objectives",
+        "OfferRewardText",
+        "EndText",
+        "ObjectiveText1",
+        "ObjectiveText2",
+        "ObjectiveText3",
+        "ObjectiveText4",
+      ],
+    ),
+    ("locales_points_of_interest", vec!["icon_name"]),
+    ("locales_page_text", vec!["Text"]),
+    (
+      "locales_npc_text",
+      vec![
+        "Text0_0", "Text0_1", "Text1_0", "Text1_1", "Text2_0", "Text2_1", "Text3_0", "Text3_1",
+        "Text4_0", "Text4_1", "Text5_0", "Text5_1", "Text6_0", "Text6_1", "Text7_0", "Text7_1",
+      ],
+    ),
   ]
   .into_iter()
-  .map(|(table, locale_column)| TranslateTarget {
-    database,
-    table,
-    locale_column,
+  .map(|(table, locale_column)| {
+    TranslateTarget::multi_columns(
+      database,
+      table,
+      locale_column.into_iter().map(|v| v.to_string()).collect(),
+    )
   })
   .collect();
 
@@ -391,10 +397,14 @@ pub async fn translate_tables_mangos(database: &'static str) -> anyhow::Result<(
     origin_language: Language,
     translate_target: &TranslateTarget,
   ) -> anyhow::Result<()> {
-    let origin_count = data_count_mangos(translate_target, origin_language).await?;
-    if origin_count > 0 {
-      translate_mangos(translate_target, origin_language, origin_count).await?;
+    let origin_counts = data_count_mangos(translate_target, origin_language).await?;
+
+    for (column, origin_count) in origin_counts {
+      if origin_count > 0 {
+        translate_mangos(translate_target, origin_language, origin_count, column).await?;
+      }
     }
+
     Ok(())
   }
 
