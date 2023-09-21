@@ -5,7 +5,6 @@ use opencc_rust::{DefaultConfig, OpenCC};
 use sqlx::{mysql::MySqlConnectOptions, ConnectOptions, Encode, MySql, MySqlPool, Type};
 use std::{future::Future, ops::Not, str::FromStr};
 use strum::ParseError;
-use strum_macros::Display;
 
 /// Run aysnc method as sync (block thread and wait result).
 pub fn block_async<F>(f: F) -> F::Output
@@ -34,21 +33,22 @@ pub fn init_logger() {
   debug!("Command line args: {COMMAND_LINE:?}");
 }
 
-#[derive(Clone, Debug, clap::ValueEnum, strum_macros::AsRefStr)]
+#[derive(Clone, Debug, strum_macros::Display, clap::ValueEnum)]
 #[strum(serialize_all = "snake_case")]
 pub enum ServerType {
   Mangos0,
   Mangos1,
   Mangos2,
+  #[strum(to_string = "acore_world")]
   AzerothCore,
 }
 
 /// Define the language types.
-#[derive(Clone, Copy, Display, Debug, strum_macros::EnumString)]
+#[derive(Clone, Copy, Debug, strum_macros::Display, strum_macros::EnumString)]
 pub enum Language {
-  #[strum(serialize = "zhCN")]
+  #[strum(to_string = "zhCN")]
   Chinese,
-  #[strum(serialize = "zhTW")]
+  #[strum(to_string = "zhTW")]
   Taiwanese,
 }
 
@@ -82,7 +82,7 @@ impl Type<MySql> for Language {
 /// Implement Encode to support the bind() method with custom type in SQLx.
 impl Encode<'_, MySql> for Language {
   fn encode_by_ref(&self, buf: &mut Vec<u8>) -> sqlx::encode::IsNull {
-    <String as Encode<MySql>>::encode_by_ref(&self.to_string(), buf)
+    Encode::<MySql>::encode_by_ref(&self.to_string(), buf)
   }
 }
 
@@ -145,10 +145,7 @@ pub struct CommandLine {
   pub check: bool,
   /// Execute database translate
   #[arg(short, long)]
-  pub translate: bool,
-  /// Set up the server type
-  #[arg(short, long, default_value = "azeroth-core")]
-  pub server_type: ServerType,
+  pub translate: Option<ServerType>,
   /// Set the log level filter
   #[arg(short, long, default_value = "info")]
   pub log: LevelFilter,
