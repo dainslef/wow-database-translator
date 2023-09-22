@@ -3,9 +3,6 @@ It's an application to translate WOW locale database tables between `zhTW` and `
 It supports table structures for Azerothcore and MaNGOS.
 
 ```
-WOW database translator
-It's an application to translate WOW locale database tables between zhTW and zhCN.
-
 Usage: wow-database-translator [OPTIONS]
 
 Options:
@@ -37,17 +34,15 @@ Options:
   -a, --async
           Enable async execute
 
-  -c, --check
+  -c, --check <CHECK>
           Run database translation check
 
-  -t, --translate
+          [possible values: mangos0, mangos1, mangos2, azeroth-core]
+
+  -t, --translate <TRANSLATE>
           Execute database translate
 
-  -s, --server-type <SERVER_TYPE>
-          Set up the server type
-
-          [default: azeroth-core]
-          [possible values: mangos0, mangos2, azeroth-core]
+          [possible values: mangos0, mangos1, mangos2, azeroth-core]
 
   -l, --log <LOG>
           Set the log level filter

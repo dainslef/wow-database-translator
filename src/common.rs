@@ -44,7 +44,9 @@ pub enum ServerType {
 }
 
 /// Define the language types.
-#[derive(Clone, Copy, Debug, strum_macros::Display, strum_macros::EnumString)]
+#[derive(
+  Clone, Copy, Debug, Hash, PartialEq, Eq, strum_macros::Display, strum_macros::EnumString,
+)]
 pub enum Language {
   #[strum(to_string = "zhCN")]
   Chinese,
@@ -142,7 +144,7 @@ pub struct CommandLine {
   pub r#async: bool,
   /// Run database translation check
   #[arg(short, long)]
-  pub check: bool,
+  pub check: Option<ServerType>,
   /// Execute database translate
   #[arg(short, long)]
   pub translate: Option<ServerType>,

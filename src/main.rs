@@ -10,13 +10,14 @@ use translate::*;
 async fn main() -> anyhow::Result<()> {
   init_logger();
 
-  if let Some(translate_type) = &COMMAND_LINE.translate {
-    match translate_type {
-      ServerType::AzerothCore => azeroth_core::translate_tables().await?,
-      v => mangos::translate_tables(v).await?,
-    }
-  } else if COMMAND_LINE.check {
+  if let Some(ServerType::AzerothCore) = &COMMAND_LINE.translate {
+    azeroth_core::translate_tables().await?;
+  } else if let Some(v) = &COMMAND_LINE.translate {
+    mangos::translate_tables(v).await?;
+  } else if let Some(ServerType::AzerothCore) = &COMMAND_LINE.check {
     azeroth_core::check_translations().await?;
+  } else if let Some(v) = &COMMAND_LINE.check {
+    mangos::check_translations(v).await?;
   } else {
     // Print help message when there is no action command input.
     CommandLine::command().print_long_help()?;
